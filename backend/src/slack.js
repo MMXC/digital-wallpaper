@@ -101,7 +101,6 @@ async function fetchMessages() {
       return result.messages
         .filter(msg => !msg.bot_id && msg.subtype !== 'bot_message')
         .reverse(); // 从旧到新
-      }
     }
   } catch (error) {
     console.error('❌ 获取 Slack 消息失败:', error.message);
