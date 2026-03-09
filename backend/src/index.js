@@ -24,7 +24,7 @@ app.use(express.json());
 // 运行 openclaw agents list 命令
 function getOpenClawAgents() {
   return new Promise((resolve) => {
-    const process = spawn('openclaw', ['agents', 'list'], {
+    const proc = spawn('openclaw', ['agents', 'list'], {
       shell: true,
       env: { ...process.env }
     });
@@ -32,15 +32,15 @@ function getOpenClawAgents() {
     let output = '';
     let errorOutput = '';
     
-    process.stdout.on('data', (data) => {
+    proc.stdout.on('data', (data) => {
       output += data.toString();
     });
     
-    process.stderr.on('data', (data) => {
+    proc.stderr.on('data', (data) => {
       errorOutput += data.toString();
     });
     
-    process.on('close', (code) => {
+    proc.on('close', (code) => {
       if (code !== 0) {
         console.error('OpenClaw CLI error:', errorOutput);
         resolve(null);
@@ -57,7 +57,7 @@ function getOpenClawAgents() {
       }
     });
     
-    process.on('error', (err) => {
+    proc.on('error', (err) => {
       console.error('Spawn error:', err);
       resolve(null);
     });
