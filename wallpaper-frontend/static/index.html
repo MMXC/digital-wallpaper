@@ -44,16 +44,17 @@
   </div>
   <div id="status" class="disconnected">🔴 未连接</div>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
-    }
-  }
+  <!-- 引入 Three.js (传统方式) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  
+  <!-- 本地 WebSocket 模拟兼容 -->
+  <script>
+    // 兼容不支持 ES6 模块的环境
+    window.THREE = THREE;
   </script>
 
   <script type="module">
-    import * as THREE from 'three';
+    // 使用全局 THREE
 
     // ============ 状态 ============
     let avatar = null;
