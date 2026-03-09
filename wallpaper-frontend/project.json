@@ -1,0 +1,20 @@
+{
+  "name": "Digital Wallpaper",
+  "id": "digital-wallpaper-avatar",
+  "type": "web",
+  "content": {
+    "index": "index.html",
+    "localhost": true,
+    "port": 18791
+  },
+  "settings": {
+    "name": "🎭 Digital Avatar - 数字人壁纸",
+    "description": "Slack AI Agent 数字人团队状态展示与虚拟办公场景",
+    "tags": ["digital-avatar", "slack", "ai", "3d"],
+    "thumbnail": "preview.jpg",
+    "version": "1.0.0",
+    "creator": "OpenClaw Team"
+  },
+  "roles": [],
+  "animations": []
+}

@@ -1,0 +1,15 @@
+{
+  "name": "digital-wallpaper-tray",
+  "version": "1.0.0",
+  "description": "数字壁纸系统托盘管理 - Windows任务栏托盘图标与右键菜单",
+  "main": "tray-app.js",
+  "author": "OpenClaw Team",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "^28.0.0"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging"
+  }
+}

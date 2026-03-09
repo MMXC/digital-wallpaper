@@ -1,0 +1,44 @@
+{
+  "appId": "com.digitalwallpaper.app",
+  "productName": "数字人壁纸",
+  "copyright": "Copyright © 2025 Digital Wallpaper Team",
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "public/**/*",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "public/",
+      "to": "public/",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/icon.ico",
+    "artifactName": "${productName}-${version}-Setup.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "数字人壁纸"
+  },
+  "asar": true,
+  "asarUnpack": [
+    "node_modules/@slack/bolt/**/*",
+    "node_modules/@slack/web-api/**/*"
+  ]
+}
