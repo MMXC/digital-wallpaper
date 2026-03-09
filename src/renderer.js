@@ -5,9 +5,11 @@ class DigitalHumanController {
     this.messageText = document.getElementById('message-text');
     this.humanImage = document.getElementById('human-image');
     this.messageTimer = null;
+    this.clickThroughEnabled = true;
     
     // 初始化
     this.init();
+    this.initControlPanel();
   }
   
   init() {
@@ -19,6 +21,33 @@ class DigitalHumanController {
     }
     
     console.log('[Renderer] 数字人控制器已初始化');
+  }
+  
+  // 初始化控制面板
+  initControlPanel() {
+    const btnClickThrough = document.getElementById('btn-click-through');
+    const btnToggleHuman = document.getElementById('btn-toggle-human');
+    
+    // 点击穿透切换
+    btnClickThrough.addEventListener('click', () => {
+      this.clickThroughEnabled = !this.clickThroughEnabled;
+      
+      // 通过IPC通知主进程
+      if (window.digitalHuman) {
+        window.digitalHuman.setClickThrough(this.clickThroughEnabled);
+      }
+      
+      // 更新按钮状态
+      btnClickThrough.textContent = this.clickThroughEnabled ? '🖱 点击穿透: 开' : '🖱 点击穿透: 关';
+      btnClickThrough.className = this.clickThroughEnabled ? 'active' : 'inactive';
+    });
+    
+    // 数字人显示/隐藏切换
+    btnToggleHuman.addEventListener('click', () => {
+      const isVisible = this.humanImage.style.display !== 'none';
+      this.humanImage.style.display = isVisible ? 'none' : 'block';
+      btnToggleHuman.textContent = isVisible ? '👤 显示数字人' : '👤 隐藏数字人';
+    });
   }
   
   // 显示消息气泡

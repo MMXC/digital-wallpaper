@@ -17,6 +17,16 @@ contextBridge.exposeInMainWorld('digitalHuman', {
     ipcRenderer.send('speak-text', text);
   },
   
+  // 设置点击穿透
+  setClickThrough: (enabled) => {
+    ipcRenderer.send('set-click-through', enabled);
+  },
+  
+  // 获取点击穿透状态
+  getClickThrough: async () => {
+    return await ipcRenderer.invoke('get-click-through');
+  },
+  
   // 获取平台信息
   platform: process.platform
 });

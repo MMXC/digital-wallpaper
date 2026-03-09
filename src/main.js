@@ -4,6 +4,9 @@ const path = require('path');
 // 保持窗口引用
 let mainWindow = null;
 
+// 点击穿透状态
+let clickThroughEnabled = true;
+
 // 创建透明置顶窗口
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -35,10 +38,22 @@ function createWindow() {
   // 调试用：打开开发者工具
   // mainWindow.webContents.openDevTools();
 
-  // 设置窗口穿透（可选）
-  // mainWindow.setIgnoreMouseEvents(true, { forward: true });
+  // 默认启用点击穿透，让鼠标事件穿透到下层应用
+  if (clickThroughEnabled) {
+    mainWindow.setIgnoreMouseEvents(true, { forward: true });
+    console.log('[Digital Human] 点击穿透已启用');
+  }
 
   console.log('[Digital Human] 透明窗口已创建');
+}
+
+// 切换点击穿透模式
+function setClickThrough(enabled) {
+  clickThroughEnabled = enabled;
+  if (mainWindow) {
+    mainWindow.setIgnoreMouseEvents(enabled, { forward: true });
+    console.log(`[Digital Human] 点击穿透已${enabled ? '启用' : '禁用'}`);
+  }
 }
 
 // 设置窗口为桌面背景（方法1：API方式）
@@ -81,6 +96,16 @@ ipcMain.on('display-message', (event, message) => {
 ipcMain.on('speak-text', (event, text) => {
   console.log('[Digital Human] TTS播报:', text);
   // 这里可以调用edge-tts
+});
+
+// IPC: 切换点击穿透模式
+ipcMain.on('set-click-through', (event, enabled) => {
+  setClickThrough(enabled);
+});
+
+// IPC: 获取当前点击穿透状态
+ipcMain.handle('get-click-through', () => {
+  return clickThroughEnabled;
 });
 
 module.exports = { mainWindow };
