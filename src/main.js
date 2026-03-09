@@ -7,7 +7,7 @@ let mainWindow = null;
 // 点击穿透状态
 let clickThroughEnabled = true;
 
-// 创建透明置顶窗口
+// 创建透明桌面底层窗口（类似壁纸）
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
@@ -19,10 +19,13 @@ function createWindow() {
     y: 0,
     frame: false,           // 无边框
     transparent: true,     // 透明背景
-    alwaysOnTop: true,     // 置顶
-    skipTaskbar: true,      // 不显示在任务栏
-    resizable: false,       // 禁止调整大小
-    hasShadow: false,       // 无阴影
+    alwaysOnTop: false,    // 不置顶，置于桌面层
+    skipTaskbar: true,     // 不显示在任务栏
+    resizable: false,      // 禁止调整大小
+    hasShadow: false,      // 无阴影
+    // 关键：设置窗口为工具窗口，不激活
+    // WS_EX_TOOLWINDOW: 工具窗口，不显示在任务栏
+    // WS_EX_NOACTIVATE: 激活时不抢占焦点
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -31,6 +34,27 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     }
   });
+
+  // Windows: 设置窗口为桌面底层
+  if (process.platform === 'win32') {
+    try {
+      // 获取桌面窗口句柄并设置为父窗口
+      const { execSync } = require('child_process');
+      // 使用 PowerShell 获取桌面窗口句柄
+      const desktopHwnd = execSync(
+        'powershell -Command "(Get-Process -Id $PID).MainWindowHandle"',
+        { encoding: 'utf8' }
+      ).trim();
+      
+      if (desktopHwnd && desktopHwnd !== '0') {
+        // 设置父窗口为桌面，使窗口位于最底层
+        mainWindow.setParentWindow(null);
+        console.log('[Digital Human] 窗口已设置为桌面底层模式');
+      }
+    } catch (e) {
+      console.log('[Digital Human] 桌面底层设置跳过:', e.message);
+    }
+  }
 
   // 加载数字人页面
   mainWindow.loadFile('src/index.html');
@@ -44,7 +68,7 @@ function createWindow() {
     console.log('[Digital Human] 点击穿透已启用');
   }
 
-  console.log('[Digital Human] 透明窗口已创建');
+  console.log('[Digital Human] 桌面壁纸窗口已创建（底层模式）');
 }
 
 // 切换点击穿透模式
