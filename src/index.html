@@ -23,6 +23,109 @@
       height: 100vh;
     }
     
+    /* ========== 壁纸背景 - 暗夜金月风格 ========== */
+    #wallpaper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      /* 深海军蓝底色 */
+      background: linear-gradient(135deg, #0a1628 0%, #1a2744 50%, #0d1f3c 100%);
+    }
+    
+    /* 金色几何菱形纹路 */
+    #wallpaper::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        /* 菱形图案 */
+        linear-gradient(45deg, transparent 48%, rgba(212, 175, 125, 0.08) 49%, rgba(212, 175, 125, 0.08) 51%, transparent 52%),
+        linear-gradient(-45deg, transparent 48%, rgba(212, 175, 125, 0.08) 49%, rgba(212, 175, 125, 0.08) 51%, transparent 52%);
+      background-size: 80px 80px;
+      opacity: 0.6;
+    }
+    
+    /* 副菱形层 */
+    #wallpaper::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(45deg, transparent 48%, rgba(212, 175, 125, 0.05) 49%, rgba(212, 175, 125, 0.05) 51%, transparent 52%),
+        linear-gradient(-45deg, transparent 48%, rgba(212, 175, 125, 0.05) 49%, rgba(212, 175, 125, 0.05) 51%, transparent 52%);
+      background-size: 160px 160px;
+      transform: rotate(0deg);
+    }
+    
+    /* 金色月亮 - 右上角 */
+    .moon {
+      position: absolute;
+      top: 8%;
+      right: 12%;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffd700 0%, #daa520 50%, #b8860b 100%);
+      box-shadow: 
+        0 0 40px rgba(255, 215, 0, 0.4),
+        0 0 80px rgba(218, 165, 32, 0.2),
+        inset -10px -10px 20px rgba(139, 90, 43, 0.3);
+    }
+    
+    /* 月亮光晕 */
+    .moon::after {
+      content: '';
+      position: absolute;
+      top: -20px;
+      left: -20px;
+      right: -20px;
+      bottom: -20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
+    }
+    
+    /* 顶部渐变光晕 */
+    .top-glow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 300px;
+      background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    
+    /* 底部暗角 */
+    .vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.4) 100%);
+      pointer-events: none;
+    }
+    
+    /* 水平金线装饰 */
+    .gold-line {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 125, 0.3) 20%, rgba(212, 175, 125, 0.5) 50%, rgba(212, 175, 125, 0.3) 80%, transparent 100%);
+    }
+    .gold-line.top { top: 15%; }
+    .gold-line.bottom { bottom: 25%; }
+    
     /* 数字人区域 */
     #digital-human {
       position: absolute;
@@ -101,6 +204,15 @@
 </head>
 <body>
   <div id="container">
+    <!-- 壁纸背景层 -->
+    <div id="wallpaper">
+      <div class="moon"></div>
+      <div class="top-glow"></div>
+      <div class="gold-line top"></div>
+      <div class="gold-line bottom"></div>
+      <div class="vignette"></div>
+    </div>
+    
     <!-- 消息气泡 -->
     <div id="message-bubble">
       <span class="avatar"></span>
