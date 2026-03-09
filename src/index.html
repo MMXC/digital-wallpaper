@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字人壁纸</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Microsoft YaHei', sans-serif;
+    }
+    
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    /* 数字人区域 */
+    #digital-human {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 600px;
+    }
+    
+    #digital-human img,
+    #digital-human video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    /* 消息气泡 */
+    #message-bubble {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      padding: 20px 30px;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    #message-bubble .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin-right: 15px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    
+    #message-bubble .content {
+      display: inline-block;
+      vertical-align: middle;
+      max-width: 400px;
+    }
+    
+    #message-bubble .sender {
+      font-weight: bold;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    #message-bubble .text {
+      color: #555;
+      font-size: 16px;
+      margin-top: 5px;
+    }
+    
+    /* WebView2 容器（用于嵌入SadTalker等） */
+    #webview-container {
+      display: none;
+    }
+    
+    webview {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <!-- 消息气泡 -->
+    <div id="message-bubble">
+      <span class="avatar"></span>
+      <div class="content">
+        <div class="sender">Slack</div>
+        <div class="text" id="message-text"></div>
+      </div>
+    </div>
+    
+    <!-- 数字人区域 -->
+    <div id="digital-human">
+      <!-- 默认显示静态图片 -->
+      <img id="human-image" src="./assets/default-avatar.png" alt="数字人">
+      
+      <!-- WebView2 容器（可选） -->
+      <div id="webview-container">
+        <webview id="sadtalker-webview" src="https://sadtalker.github.io"></webview>
+      </div>
+    </div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
