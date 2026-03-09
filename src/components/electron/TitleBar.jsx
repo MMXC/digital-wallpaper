@@ -65,7 +65,7 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 9999,
-    WebkitAppRegion: 'drag' as any,
+    WebkitAppRegion: 'drag',
     userSelect: 'none'
   },
   dragRegion: {
@@ -83,7 +83,7 @@ const styles = {
   controls: {
     display: 'flex',
     height: '100%',
-    WebkitAppRegion: 'no-drag' as any
+    WebkitAppRegion: 'no-drag'
   },
   btn: {
     width: '46px',

@@ -40,10 +40,8 @@ export default function Settings({ onClose }) {
 
   async function loadData() {
     try {
-      const [cfg, st] = await Promise.electronAPI?..all([
-        windowgetConfig(),
-        window.electronAPI?.getStatus()
-      ]);
+      const cfg = await window.electronAPI?.getConfig();
+      const st = await window.electronAPI?.getStatus();
       if (cfg) setConfig(cfg);
       if (st) setStatus(st);
     } catch (e) {
