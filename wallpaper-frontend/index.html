@@ -1,0 +1,298 @@
+/**
+ * Wallpaper Engine 数字人前端
+ * 
+ * 架构: WebSocket 客户端连接 localhost:18790
+ * 接收 avatar_action_v1 契约，控制 Three.js 数字人
+ * 
+ * 使用方式:
+ *   1. 安装依赖: npm install three ws
+ *   2. 启动: node server.js
+ *   3. 在 Wallpaper Engine 中添加 web effect，URL 指向 localhost:18791
+ */
+
+import http from 'http';
+import { WebSocketServer } from 'ws';
+import * as THREE from 'three';
+
+// ============ 配置 ============
+const WS_PORT = 18790;        // 接收 Slack 中间件转发
+const HTTP_PORT = 18791;      // Wallpaper Engine 访问端口
+
+// ============ 全局状态 ============
+let currentAction = 'idle';
+let currentEmotion = 'neutral';
+let currentText = '';
+let currentTarget = '';
+let avatar = null;
+
+// 情感映射到颜色
+const emotionColors = {
+  happy: 0x4CAF50,      // 绿色
+  sad: 0x2196F3,        // 蓝色
+  angry: 0xF44336,      // 红色
+  neutral: 0x9E9E9E,    // 灰色
+  excited: 0xFF9800,    // 橙色
+  surprised: 0x9C27B0   // 紫色
+};
+
+// ============ Three.js 场景 ============
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// 灯光
+const ambientLight = new THREE.AmbientLight(0x404040, 2);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(5, 5, 5);
+scene.add(directionalLight);
+
+// ============ 创建数字人 (简化版 - 球体代表) ============
+function createAvatar() {
+  const group = new THREE.Group();
+  
+  // 身体 (圆柱体)
+  const bodyGeometry = new THREE.CylinderGeometry(0.8, 1, 2, 32);
+  const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x3f51b5 });
+  const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+  body.position.y = -0.5;
+  group.add(body);
+  
+  // 头部 (球体)
+  const headGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+  const headMaterial = new THREE.MeshPhongMaterial({ color: emotionColors.neutral });
+  const head = new THREE.Mesh(headGeometry, headMaterial);
+  head.position.y = 1.5;
+  head.name = 'head';
+  group.add(head);
+  
+  // 眼睛 (两个小球)
+  const eyeGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+  const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  
+  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  leftEye.position.set(-0.25, 1.6, 0.7);
+  group.add(leftEye);
+  
+  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  rightEye.position.set(0.25, 1.6, 0.7);
+  group.add(rightEye);
+  
+  // 嘴巴 (根据情感变化)
+  const mouthGeometry = new THREE.TorusGeometry(0.15, 0.03, 8, 16, Math.PI);
+  const mouthMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+  const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+  mouth.position.set(0, 1.3, 0.75);
+  mouth.rotation.x = Math.PI;
+  mouth.name = 'mouth';
+  group.add(mouth);
+  
+  return group;
+}
+
+avatar = createAvatar();
+scene.add(avatar);
+
+// ============ WebSocket 客户端 (连接 Slack 中间件) ============
+function connectToBackend() {
+  const ws = new WebSocket(`ws://127.0.0.1:${WS_PORT}`);
+  
+  ws.on('open', () => {
+    console.log('✅ 已连接 Slack 中间件');
+  });
+  
+  ws.on('message', (data) => {
+    try {
+      const action = JSON.parse(data.toString());
+      console.log('📥 收到动作契约:', action);
+      handleAvatarAction(action);
+    } catch (e) {
+      console.error('❌ 解析动作失败:', e);
+    }
+  });
+  
+  ws.on('close', () => {
+    console.log('❌ 与中间件断开，5秒后重连...');
+    setTimeout(connectToBackend, 5000);
+  });
+  
+  ws.on('error', (err) => {
+    console.error('🔌 WebSocket错误:', err.message);
+  });
+}
+
+// ============ 处理 Avatar 动作 ============
+function handleAvatarAction(action) {
+  console.log('🎭 执行动作:', action.action, '情感:', action.emotion);
+  
+  currentAction = action.action;
+  currentEmotion = action.emotion;
+  currentText = action.text;
+  currentTarget = action.target;
+  
+  // 更新头部颜色
+  const head = avatar.getObjectByName('head');
+  if (head) {
+    const color = emotionColors[action.emotion] || emotionColors.neutral;
+    head.material.color.setHex(color);
+  }
+  
+  // 根据动作类型播放动画
+  switch (action.action) {
+    case 'speak':
+      playSpeakAnimation();
+      break;
+    case 'wave':
+      playWaveAnimation();
+      break;
+    case 'nod':
+      playNodAnimation();
+      break;
+    case 'dance':
+      playDanceAnimation();
+      break;
+    default:
+      playIdleAnimation();
+  }
+}
+
+// ============ 动画函数 ============
+function playSpeakAnimation() {
+  // 简单的说话动画 - 头部微动
+  const head = avatar.getObjectByName('head');
+  if (head) {
+    const originalY = head.position.y;
+    let speaking = true;
+    
+    const animate = () => {
+      if (!speaking) return;
+      head.position.y = originalY + Math.sin(Date.now() * 0.01) * 0.05;
+      requestAnimationFrame(animate);
+    };
+    animate();
+    
+    setTimeout(() => { speaking = false; head.position.y = originalY; }, 3000);
+  }
+}
+
+function playWaveAnimation() {
+  // 挥手动画
+  let waveCount = 0;
+  const animate = () => {
+    if (waveCount > 3) return;
+    avatar.rotation.y = Math.sin(Date.now() * 0.01) * 0.5;
+    if (waveCount++ < 3) requestAnimationFrame(animate);
+  };
+  animate();
+}
+
+function playNodAnimation() {
+  // 点头动画
+  let nods = 0;
+  const animate = () => {
+    if (nods > 2) {
+      avatar.rotation.x = 0;
+      return;
+    }
+    avatar.rotation.x = Math.sin(Date.now() * 0.02) * 0.2;
+    requestAnimationFrame(animate);
+  };
+  animate();
+}
+
+function playDanceAnimation() {
+  // 跳舞动画
+  let dancing = true;
+  const animate = () => {
+    if (!dancing) return;
+    avatar.position.y = Math.sin(Date.now() * 0.005) * 0.3;
+    avatar.rotation.y = Math.sin(Date.now() * 0.003) * 0.3;
+    requestAnimationFrame(animate);
+  };
+  animate();
+  
+  setTimeout(() => { dancing = false; avatar.position.y = 0; }, 5000);
+}
+
+function playIdleAnimation() {
+  // 待机动画 - 轻微呼吸
+  const breathe = () => {
+    avatar.scale.y = 1 + Math.sin(Date.now() * 0.001) * 0.02;
+    requestAnimationFrame(breathe);
+  };
+  breathe();
+}
+
+// ============ HTTP 服务器 (供 Wallpaper Engine 加载) ============
+const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>数字人壁纸</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { overflow: hidden; background: #1a1a2e; }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: monospace;
+      font-size: 14px;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <div>🎭 动作: <span id="action">idle</span></div>
+    <div>😊 情感: <span id="emotion">neutral</span></div>
+    <div>💬 内容: <span id="text">-</span></div>
+    <div>🎯 目标: <span id="target">-</span></div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // 简化的 Three.js 渲染 (实际使用完整版)
+    // 此 HTML 由 Wallpaper Engine 加载
+  </script>
+</body>
+</html>
+`;
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(html);
+});
+
+server.listen(HTTP_PORT, () => {
+  console.log(\`🎨 Wallpaper Engine HTTP 服务: http://localhost:\${HTTP_PORT}\`);
+});
+
+// ============ 启动 ============
+console.log('🎬 启动数字人壁纸前端...');
+connectToBackend();
+playIdleAnimation();
+
+// 渲染循环
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+// 窗口大小调整
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});

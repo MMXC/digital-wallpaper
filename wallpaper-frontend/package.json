@@ -1,0 +1,14 @@
+{
+  "name": "wallpaper-frontend",
+  "version": "1.0.0",
+  "description": "Wallpaper Engine 数字人前端 - 接收Avatar动作契约并渲染",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "three": "^0.183.2",
+    "ws": "^8.19.0"
+  }
+}

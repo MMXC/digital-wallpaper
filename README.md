@@ -1,80 +1,85 @@
-# Digital Human Wallpaper
+# 数字壁纸 - Avatar Action Gateway
 
-Windows桌面数字人壁纸 - 原型
-
-## 技术栈
-
-- **Electron 28** - 透明置顶窗口
-- **WebView2** - 嵌入SadTalker/D-ID数字人
-- **Python** - Slack/飞书消息监听 + edge-tts
-
-## 项目结构
-
+**PRD 架构:**
 ```
-digital-human-wallpaper/
-├── package.json           # Electron配置
-├── src/
-│   ├── main.js            # 主进程 - 透明窗口
-│   ├── preload.js         # 预加载 - 安全IPC
-│   ├── index.html         # 数字人界面
-│   ├── renderer.js        # 渲染进程 - 消息处理
-│   └── assets/
-│       └── default-avatar.png
-└── backend/
-    └── service.py         # 消息监听 + TTS服务
+Slack频道(AI Agent) → 本地中间件(Node.js) → Wallpaper Engine(Web)
 ```
 
-## 快速开始
+## 目录结构
+
+```
+digital-wallpaper/
+├── backend/               # Slack 中间件
+│   ├── src/
+│   │   └── index.js       # Slack Bolt + WebSocket 转发
+│   ├── package.json
+│   └── .env.example       # 环境变量模板
+│
+└── wallpaper-frontend/   # Wallpaper Engine 前端
+    ├── server.js         # HTTP + WebSocket 客户端
+    ├── public/           # 静态资源
+    └── package.json
+```
+
+## 启动步骤
 
 ### 1. 安装依赖
 
 ```bash
-# Electron依赖
-cd digital-human-wallpaper
+# Slack 中间件
+cd backend
 npm install
 
-# Python依赖
-pip install slack-sdk edge-tts
+# Wallpaper Engine 前端
+cd ../wallpaper-frontend
+npm install express ws three
 ```
 
-### 2. 配置环境变量
+### 2. 配置 Slack
 
-```bash
-# Slack Bot Token
-export SLACK_BOT_TOKEN="xoxb-your-token"
-# Slack App Token (Socket Mode)
-export SLACK_APP_TOKEN="xapp-your-token"
+1. 访问 https://api.slack.com/apps 创建新 App
+2. **Socket Mode**: 启用
+3. **Event Subscriptions**: 订阅 `message.channels`
+4. **Bot Token Scopes**: `chat:write`, `channels:history`
+5. 安装到工作区
+
+复制 `.env.example` 为 `.env` 并填入凭证:
+```
+SLACK_SIGNING_SECRET=xxx
+SLACK_BOT_TOKEN=xoxb-xxx
+SLACK_APP_TOKEN=xapp-xxx
 ```
 
-### 3. 启动
+### 3. 启动服务
 
 ```bash
-# 启动桌面应用
+# 终端1: 启动 Slack 中间件
+cd backend
 npm start
 
-# 启动后端服务（另一个终端）
-python backend/service.py
+# 终端2: 启动 Wallpaper 前端
+cd wallpaper-frontend
+node server.js
 ```
 
-## 阶段成果
+### 4. 配置 Wallpaper Engine
 
-### Phase 1 ✅ 完成
-- [x] Electron透明置顶窗口
-- [x] 消息气泡UI
-- [x] 基础IPC通信
-- [x] 项目结构搭建
+添加 web effect，URL: `http://localhost:18791`
 
-### Phase 2 计划
-- [ ] Slack消息监听集成
-- [ ] edge-tts语音合成
-- [ ] WebView2嵌入SadTalker
+## 使用方式
 
-### Phase 3 计划
-- [ ] 音频驱动数字人视频生成
-- [ ] 多消息聚合播报
+在 Slack 频道发送 JSON 契约:
 
-## 注意事项
+```json
+{
+  "protocol": "avatar_action_v1",
+  "agent": "Dev_A",
+  "action": "speak",
+  "text": "代码已提交",
+  "emotion": "happy",
+  "target": "PM_Bot"
+}
+```
 
-1. **运行环境**: 需要Windows 10/11
-2. **WebView2**: 需要安装Edge WebView2 Runtime
-3. **SadTalker**: 需要NVIDIA GPU (6GB+ VRAM)
+支持的 action: `speak`, `wave`, `nod`, `dance`, `think`, `idle`
+支持的 emotion: `happy`, `sad`, `angry`, `neutral`, `excited`, `surprised`
