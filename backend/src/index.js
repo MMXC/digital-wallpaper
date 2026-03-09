@@ -9,6 +9,11 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { spawn } from 'child_process';
+import { createServer } from 'http';
+
+// 导入 Slack 和 WebSocket 模块
+import { initSlackClient, onMessage, startPolling, stopPolling, simulateMessage, slackConfig } from './slack.js';
+import { initWebSocketServer, broadcastToAgent, getClientCount } from './websocket.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -224,15 +229,92 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    service: 'digital-wallpaper-api'
+    service: 'digital-wallpaper-api',
+    wsClients: getClientCount()
   });
+});
+
+// Slack 状态
+app.get('/api/slack/status', (req, res) => {
+  res.json({
+    configured: !!slackConfig.token,
+    channel: slackConfig.channelId,
+    tokenPrefix: slackConfig.token ? slackConfig.token.substring(0, 7) + '...' : '未配置'
+  });
+});
+
+// 模拟消息（测试用）
+app.post('/api/slack/simulate', (req, res) => {
+  const { agent, action, data } = req.body;
+  
+  if (!agent || !action) {
+    res.status(400).json({ error: '缺少必需参数: agent, action' });
+    return;
+  }
+  
+  simulateMessage({ agent, action, data: data || {} });
+  res.json({ success: true, message: '模拟消息已发送' });
 });
 
 // ============ 启动 ============
 
-app.listen(PORT, () => {
+// 创建 HTTP 服务器
+const server = createServer(app);
+
+// 初始化 WebSocket 服务器
+initWebSocketServer(server);
+
+// 初始化 Slack 客户端并设置消息处理
+initSlackClient(process.env.SLACK_BOT_TOKEN);
+onMessage((contract, msg) => {
+  console.log('📨 收到 Slack 契约:', contract);
+  
+  // 根据 action 处理不同消息
+  if (contract.action === 'status_update') {
+    // 广播给前端
+    const updateCount = broadcastToAgent(contract.agent, {
+      action: 'status_update',
+      data: contract.data
+    });
+    console.log(`✅ 状态更新已广播给 ${updateCount} 个客户端`);
+  } else if (contract.action === 'task_update') {
+    // 任务更新
+    broadcastToAgent(contract.agent, {
+      action: 'task_update',
+      data: contract.data
+    });
+  } else if (contract.action === 'broadcast') {
+    // 广播给所有
+    const { broadcast } = require('./websocket.js');
+    broadcast({
+      type: 'broadcast',
+      data: contract.data
+    });
+  }
+});
+
+// 启动 Slack 轮询（如果配置了 token）
+if (slackConfig.token) {
+  startPolling();
+} else {
+  console.log('ℹ️ 未配置 Slack Token，跳过消息监听');
+}
+
+// 启动服务器
+server.listen(PORT, () => {
   console.log(`🏛️ 数字人壁纸 API 服务已启动: http://localhost:${PORT}`);
   console.log(`📋 API 端点: http://localhost:${PORT}/api/agents`);
+  console.log(`🔌 WebSocket 端点: ws://localhost:${PORT}`);
+});
+
+// 优雅关闭
+process.on('SIGTERM', () => {
+  console.log('📡 收到 SIGTERM，正在关闭...');
+  stopPolling();
+  server.close(() => {
+    console.log('✅ 服务已关闭');
+    process.exit(0);
+  });
 });
 
 export default app;

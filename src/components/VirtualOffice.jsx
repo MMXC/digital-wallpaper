@@ -2,10 +2,95 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Text, Html, Float, useGLTF, Environment } from '@react-three/drei'
 import { useState, useEffect, useRef } from 'react'
 
+// ============ WebSocket 连接 Hook ============
+function useWebSocket(onMessage) {
+  const wsRef = useRef(null)
+  const [connected, setConnected] = useState(false)
+  
+  useEffect(() => {
+    // 尝试连接 WebSocket
+    const wsUrl = `ws://${window.location.hostname}:3001`
+    let ws = null
+    let reconnectTimer = null
+    
+    const connect = () => {
+      try {
+        ws = new WebSocket(wsUrl)
+        wsRef.current = ws
+        
+        ws.onopen = () => {
+          console.log('🔌 WebSocket 已连接')
+          setConnected(true)
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            console.log('📨 收到 WebSocket 消息:', data)
+            
+            if (onMessage) {
+              onMessage(data)
+            }
+          } catch (e) {
+            console.error('消息解析失败:', e)
+          }
+        }
+        
+        ws.onclose = () => {
+          console.log('🔌 WebSocket 已断开')
+          setConnected(false)
+          // 3秒后重连
+          reconnectTimer = setTimeout(connect, 3000)
+        }
+        
+        ws.onerror = (error) => {
+          console.error('WebSocket 错误:', error)
+        }
+      } catch (e) {
+        console.error('WebSocket 连接失败:', e)
+      }
+    }
+    
+    connect()
+    
+    return () => {
+      if (ws) ws.close()
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+    }
+  }, [])
+  
+  return { connected, ws: wsRef.current }
+}
+
 // ============ OpenClaw 状态获取 Hook ============
 function useOpenClawStatus() {
   const [agents, setAgents] = useState([])
   const [loading, setLoading] = useState(true)
+  
+  // 处理 WebSocket 消息
+  const handleWsMessage = (data) => {
+    if (data.type === 'connected') {
+      console.log('✅ WebSocket 连接成功')
+      return
+    }
+    
+    if (data.type === 'agent_update' && data.agent && data.data) {
+      // 更新对应 Agent 的状态
+      setAgents(prev => prev.map(agent => {
+        if (agent.id === data.agent) {
+          return {
+            ...agent,
+            ...data.data,
+            lastUpdate: data.timestamp
+          }
+        }
+        return agent
+      }))
+    }
+  }
+  
+  // 使用 WebSocket
+  const { connected } = useWebSocket(handleWsMessage)
   
   useEffect(() => {
     // 默认虚拟办公场景的 Agent 列表
@@ -63,7 +148,7 @@ function useOpenClawStatus() {
     return () => clearInterval(interval)
   }, [])
   
-  return { agents, loading }
+  return { agents, loading, wsConnected: connected }
 }
 
 // ============ 3D 组件 ============
@@ -400,7 +485,7 @@ function OfficeScene({ agents, onAgentClick, selectedAgent }) {
 
 // ============ 主组件 ============
 export default function VirtualOffice() {
-  const { agents, loading } = useOpenClawStatus()
+  const { agents, loading, wsConnected } = useOpenClawStatus()
   const [selectedAgent, setSelectedAgent] = useState(null)
   
   // 计算统计数据
@@ -555,6 +640,36 @@ export default function VirtualOffice() {
         fontSize: '11px',
       }}>
         🖱️ 拖拽旋转 | 滚轮缩放 | 点击查看详情
+      </div>
+      
+      {/* WebSocket 状态 */}
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        padding: '6px 12px',
+        background: wsConnected ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+        borderRadius: '20px',
+        color: 'white',
+        fontSize: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+      }}>
+        <span style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          background: wsConnected ? '#4ade80' : '#f87171',
+          animation: wsConnected ? 'pulse 2s infinite' : 'none',
+        }} />
+        {wsConnected ? '实时同步' : '本地模式'}
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        `}</style>
       </div>
       
       {/* 加载状态 */}
