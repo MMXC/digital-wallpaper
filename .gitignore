@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 保留 static 目录用于 Wallpaper Engine
+!wallpaper-frontend/static/

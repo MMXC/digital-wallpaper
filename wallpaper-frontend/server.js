@@ -25,19 +25,13 @@ const wss = new WebSocketServer({ server });
 const HTTP_PORT = 18791;
 const BACKEND_WS_URL = 'ws://127.0.0.1:18790';
 
-// ============ 静态文件服务 ============
-app.use(express.static(join(__dirname, 'public')));
+// ============ 静态文件服务 (虚拟办公场景) ============
+app.use(express.static(join(__dirname, 'static')));
 
-// ============ HTML 页面 ============
+// ============ HTML 页面 (虚拟办公场景) ============
 app.get('/', (req, res) => {
-  res.send(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>数字人壁纸</title>
-  <style>
-    * { margin: 0; padding: 0; }
-    body { 
+  res.sendFile(join(__dirname, 'static', 'index.html'));
+}); 
       overflow: hidden; 
       background: #1a1a2e;
       font-family: 'Segoe UI', sans-serif;
