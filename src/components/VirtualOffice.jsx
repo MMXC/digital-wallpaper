@@ -1,125 +1,375 @@
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Text, Html, Float } from '@react-three/drei'
-import { useState, useEffect } from 'react'
+import { OrbitControls, Text, Html, Float, useGLTF, Environment } from '@react-three/drei'
+import { useState, useEffect, useRef } from 'react'
 
-// Agent 头像组件
-function AgentAvatar({ agent, position, onClick }) {
-  const colors = {
-    idle: '#4ade80',    // 绿色
-    busy: '#facc15',    // 黄色
-    blocked: '#f87171', // 红色
+// ============ OpenClaw 状态获取 Hook ============
+function useOpenClawStatus() {
+  const [agents, setAgents] = useState([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    // 默认虚拟办公场景的 Agent 列表
+    const defaultAgents = [
+      { id: 'taizi', name: '太子', role: '项目总控', status: 'idle', currentTask: '监控全局', color: '#8b5cf6' },
+      { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'idle', currentTask: '待命中', color: '#3b82f6' },
+      { id: 'menxia', name: '门下省', role: '审核审议', status: 'busy', currentTask: '审批中', color: '#10b981' },
+      { id: 'shangshu', name: '尚书省', role: '执行派发', status: 'idle', currentTask: '待命中', color: '#f59e0b' },
+      { id: 'bingbu', name: '兵部', role: '战斗部署', status: 'blocked', currentTask: '等待资源', color: '#ef4444' },
+      { id: 'gongbu', name: '工部', role: '工程建设', status: 'idle', currentTask: '待命中', color: '#6366f1' },
+      { id: 'hubu', name: '户部', role: '财政资源', status: 'busy', currentTask: '核算中', color: '#14b8a6' },
+      { id: 'libu', name: '礼部', role: '外交礼仪', status: 'idle', currentTask: '待命中', color: '#f97316' },
+      { id: 'xingbu', name: '刑部', role: '司法审判', status: 'idle', currentTask: '待命中', color: '#84cc16' },
+    ]
+    
+    const fetchStatus = async () => {
+      try {
+        // 尝试从本地 API 获取（如果后端服务运行）
+        const res = await fetch('http://localhost:3001/api/agents', { 
+          signal: AbortSignal.timeout(2000) 
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setAgents(data)
+        } else {
+          // 使用默认数据 + 模拟实时更新
+          setAgents(prev => {
+            if (prev.length === 0) return defaultAgents
+            // 模拟状态随机变化
+            return prev.map(a => ({
+              ...a,
+              status: Math.random() > 0.8 ? (a.status === 'idle' ? 'busy' : 'idle') : a.status
+            }))
+          })
+        }
+      } catch (err) {
+        // 使用默认数据
+        setAgents(prev => {
+          if (prev.length === 0) return defaultAgents
+          // 模拟状态随机变化
+          return prev.map(a => ({
+            ...a,
+            status: Math.random() > 0.9 ? 
+              (a.status === 'idle' ? 'busy' : a.status === 'busy' ? 'blocked' : 'idle') : a.status
+          }))
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchStatus()
+    // 每5秒更新一次
+    const interval = setInterval(fetchStatus, 5000)
+    return () => clearInterval(interval)
+  }, [])
+  
+  return { agents, loading }
+}
+
+// ============ 3D 组件 ============
+
+// 数字人 Agent 头像
+function AgentAvatar({ agent, position, onClick, isSelected }) {
+  const meshRef = useRef()
+  const [hovered, setHovered] = useState(false)
+  
+  const statusColors = {
+    idle: '#4ade80',     // 绿色 - 待命
+    busy: '#facc15',     // 黄色 - 工作
+    blocked: '#f87171',  // 红色 - 阻塞
   }
   
-  const color = colors[agent.status] || colors.idle
+  const color = agent.color || statusColors[agent.status] || '#4ade80'
+  const glowColor = statusColors[agent.status] || statusColors.idle
+  
+  // 浮动动画
+  const floatY = Math.sin(Date.now() / 1000 + position[0]) * 0.05
   
   return (
-    <group position={position} onClick={onClick}>
-      {/* 头像 - 使用球体代替 */}
-      <mesh>
-        <sphereGeometry args={[0.4, 32, 32]} />
-        <meshStandardMaterial color={color} />
+    <group 
+      position={[position[0], position[1] + floatY, position[2]]}
+      onClick={(e) => { e.stopPropagation(); onClick(agent) }}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
+      {/* 主体 - 圆柱形代表数字人 */}
+      <mesh position={[0, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.3, 0.35, 0.8, 32]} />
+        <meshStandardMaterial 
+          color={color} 
+          metalness={0.3}
+          roughness={0.4}
+        />
+      </mesh>
+      
+      {/* 头部 - 球体 */}
+      <mesh position={[0, 0.55, 0]} castShadow>
+        <sphereGeometry args={[0.25, 32, 32]} />
+        <meshStandardMaterial 
+          color={color}
+          metalness={0.5}
+          roughness={0.3}
+        />
       </mesh>
       
       {/* 状态光环 */}
-      <mesh>
-        <sphereGeometry args={[0.5, 32, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.2} />
+      <mesh position={[0, 0.3, 0]}>
+        <torusGeometry args={[0.5, 0.03, 16, 32]} />
+        <meshBasicMaterial 
+          color={glowColor} 
+          transparent 
+          opacity={hovered ? 0.8 : 0.4} 
+        />
+      </mesh>
+      
+      {/* 底部光晕 */}
+      <mesh position={[0, -0.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.4, 32]} />
+        <meshBasicMaterial 
+          color={glowColor} 
+          transparent 
+          opacity={0.3} 
+        />
       </mesh>
       
       {/* 名字标签 */}
-      <Float speed={2} rotationIntensity={0} floatIntensity={0.5}>
-        <Html position={[0, 0.8, 0]} center>
+      <Float speed={2} rotationIntensity={0} floatIntensity={0.3}>
+        <Html position={[0, 1.1, 0]} center distanceFactor={10}>
           <div style={{
-            background: 'rgba(0,0,0,0.7)',
+            background: hovered ? 'rgba(78, 204, 163, 0.95)' : 'rgba(0,0,0,0.85)',
             color: 'white',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '12px',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: '13px',
             whiteSpace: 'nowrap',
             textAlign: 'center',
+            border: isSelected ? '2px solid #4ecca3' : '1px solid rgba(255,255,255,0.2)',
+            transform: hovered ? 'scale(1.1)' : 'scale(1)',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}>
-            <div style={{ fontWeight: 'bold' }}>{agent.name}</div>
-            <div style={{ fontSize: '10px', opacity: 0.8 }}>{agent.role}</div>
+            <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{agent.name}</div>
+            <div style={{ fontSize: '10px', opacity: 0.85, marginTop: '2px' }}>{agent.role}</div>
           </div>
         </Html>
       </Float>
       
       {/* 状态标签 */}
-      <Html position={[0, -0.7, 0]} center>
+      <Html position={[0, -0.6, 0]} center distanceFactor={10}>
         <div style={{
-          background: color,
+          background: glowColor,
           color: '#000',
-          padding: '2px 6px',
-          borderRadius: '8px',
-          fontSize: '10px',
+          padding: '3px 10px',
+          borderRadius: '10px',
+          fontSize: '11px',
           fontWeight: 'bold',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
         }}>
           {agent.status === 'idle' ? '🟢 待命中' : 
-           agent.status === 'busy' ? '🟡 工作中' : '🔴 阻塞'}
+           agent.status === 'busy' ? '🟡 工作中' : '🔴 阻塞中'}
         </div>
       </Html>
+      
+      {/* 连接线效果 */}
+      {agent.status === 'busy' && (
+        <mesh position={[0, 0.3, 0]} rotation={[0, 0, 0]}>
+          <ringGeometry args={[0.6, 0.65, 32]} />
+          <meshBasicMaterial color={glowColor} transparent opacity={0.3} side={2} />
+        </mesh>
+      )}
     </group>
   )
 }
 
-// 地板组件
-function Floor() {
+// 地板组件 - 网格地板
+function GridFloor() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
-      <planeGeometry args={[20, 20]} />
-      <meshStandardMaterial color="#374151" />
-    </mesh>
+    <group>
+      {/* 主地板 */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
+        <planeGeometry args={[30, 30]} />
+        <meshStandardMaterial color="#1e293b" />
+      </mesh>
+      
+      {/* 网格线 */}
+      <gridHelper 
+        args={[30, 30, '#334155', '#1e293b']} 
+        position={[0, -0.49, 0]} 
+      />
+      
+      {/* 中心圆形区域 */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]}>
+        <circleGeometry args={[5, 64]} />
+        <meshStandardMaterial color="#0f172a" transparent opacity={0.5} />
+      </mesh>
+      
+      {/* 内圈 */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.47, 0]}>
+        <ringGeometry args={[4, 4.1, 64]} />
+        <meshBasicMaterial color="#4ecca3" transparent opacity={0.3} />
+      </mesh>
+    </group>
   )
 }
 
-// 桌子组件
-function Desk({ position }) {
+// 办公桌
+function Desk({ position, index }) {
   return (
     <group position={position}>
       {/* 桌面 */}
-      <mesh position={[0, 0.3, 0]} castShadow>
-        <boxGeometry args={[1.5, 0.1, 0.8]} />
-        <meshStandardMaterial color="#92400e" />
+      <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.8, 0.08, 0.9]} />
+        <meshStandardMaterial color="#78350f" roughness={0.6} />
       </mesh>
+      
       {/* 桌腿 */}
-      {[[-0.6, 0, -0.3], [0.6, 0, -0.3], [-0.6, 0, 0.3], [0.6, 0, 0.3]].map((pos, i) => (
-        <mesh key={i} position={[pos[0], -0.1, pos[2]]} castShadow>
-          <boxGeometry args={[0.1, 0.5, 0.1]} />
-          <meshStandardMaterial color="#451a03" />
+      {[[-0.75, 0, -0.35], [0.75, 0, -0.35], [-0.75, 0, 0.35], [0.75, 0, 0.35]].map((pos, i) => (
+        <mesh key={i} position={[pos[0], 0, pos[2]]} castShadow>
+          <boxGeometry args={[0.08, 0.7, 0.08]} />
+          <meshStandardMaterial color="#451a03" roughness={0.8} />
+        </mesh>
+      ))}
+      
+      {/* 桌上的显示器（简化） */}
+      <mesh position={[0, 0.55, -0.1]} castShadow>
+        <boxGeometry args={[0.6, 0.4, 0.05]} />
+        <meshStandardMaterial color="#1e293b" metalness={0.5} />
+      </mesh>
+      
+      {/* 显示器支架 */}
+      <mesh position={[0, 0.4, -0.1]}>
+        <boxGeometry args={[0.08, 0.2, 0.08]} />
+        <meshStandardMaterial color="#334155" />
+      </mesh>
+    </group>
+  )
+}
+
+// 会议室桌子
+function MeetingTable({ position }) {
+  return (
+    <group position={position}>
+      {/* 椭圆形桌面 */}
+      <mesh position={[0, 0.4, 0]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
+        <circleGeometry args={[1.5, 32]} />
+        <meshStandardMaterial color="#1e3a5f" roughness={0.3} metalness={0.2} />
+      </mesh>
+      
+      {/* 桌腿 */}
+      <mesh position={[0, 0.15, 0]}>
+        <cylinderGeometry args={[0.1, 0.15, 0.3, 16]} />
+        <meshStandardMaterial color="#0f172a" />
+      </mesh>
+      
+      {/* 底座 */}
+      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.4, 32]} />
+        <meshStandardMaterial color="#0f172a" />
+      </mesh>
+    </group>
+  )
+}
+
+// 装饰植物
+function Plant({ position, scale = 1 }) {
+  return (
+    <group position={position} scale={scale}>
+      {/* 花盆 */}
+      <mesh position={[0, 0.15, 0]} castShadow>
+        <cylinderGeometry args={[0.15, 0.12, 0.3, 16]} />
+        <meshStandardMaterial color="#b45309" roughness={0.8} />
+      </mesh>
+      
+      {/* 叶子 - 使用多个小球体 */}
+      {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+        <mesh 
+          key={i} 
+          position={[
+            Math.sin(angle * Math.PI / 180) * 0.1, 
+            0.35 + i * 0.05, 
+            Math.cos(angle * Math.PI / 180) * 0.1
+          ]}
+        >
+          <sphereGeometry args={[0.08, 8, 8]} />
+          <meshStandardMaterial color="#22c55e" />
         </mesh>
       ))}
     </group>
   )
 }
 
+// 墙壁组件
+function Walls() {
+  return (
+    <group>
+      {/* 后墙 */}
+      <mesh position={[0, 2, -8]}>
+        <planeGeometry args={[30, 6]} />
+        <meshStandardMaterial color="#1e293b" />
+      </mesh>
+      
+      {/* 侧墙 - 左 */}
+      <mesh position={[-10, 2, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[20, 6]} />
+        <meshStandardMaterial color="#0f172a" />
+      </mesh>
+      
+      {/* 侧墙 - 右 */}
+      <mesh position={[10, 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[20, 6]} />
+        <meshStandardMaterial color="#0f172a" />
+      </mesh>
+    </group>
+  )
+}
+
+// 灯光系统
+function Lighting() {
+  return (
+    <>
+      <ambientLight intensity={0.4} color="#e0f2fe" />
+      <pointLight position={[0, 4, 0]} intensity={1} color="#fef3c7" castShadow />
+      <pointLight position={[-5, 3, 3]} intensity={0.5} color="#bfdbfe" />
+      <pointLight position={[5, 3, 3]} intensity={0.5} color="#bfdbfe" />
+      <directionalLight 
+        position={[5, 8, 5]} 
+        intensity={0.3} 
+        color="#ffffff"
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+      />
+    </>
+  )
+}
+
 // 办公室场景
-function OfficeScene({ agents, onAgentClick }) {
+function OfficeScene({ agents, onAgentClick, selectedAgent }) {
   // 计算 Agent 位置 - 环形布局
-  const radius = 3
+  const radius = 4
   const angleStep = (2 * Math.PI) / Math.max(agents.length, 1)
   
   return (
     <>
-      {/* 灯光 */}
-      <ambientLight intensity={0.5} />
-      <pointLight position={[0, 5, 0]} intensity={1} castShadow />
-      <directionalLight position={[5, 5, 5]} intensity={0.5} />
+      <Lighting />
+      <GridFloor />
+      <Walls />
       
-      {/* 地板 */}
-      <Floor />
-      
-      {/* 房间墙壁（简单示意） */}
-      <mesh position={[0, 2, -5]}>
-        <planeGeometry args={[20, 5]} />
-        <meshStandardMaterial color="#1f2937" />
-      </mesh>
+      {/* 会议室桌子 */}
+      <MeetingTable position={[0, 0, -3]} />
       
       {/* 办公桌 */}
-      {[0, 1, 2, 3].map(i => (
-        <Desk key={i} position={[0, 0, -2 + i * 1.5]} />
+      {[-4, 4].map((x, i) => (
+        <Desk key={i} position={[x, 0, 2]} index={i} />
       ))}
       
-      {/* Agent 头像 */}
+      {/* 装饰植物 */}
+      <Plant position={[-3, 0, -3]} scale={1.2} />
+      <Plant position={[3, 0, -3]} scale={1} />
+      <Plant position={[-5, 0, 0]} scale={0.8} />
+      <Plant position={[5, 0, 0]} scale={0.9} />
+      
+      {/* Agent 头像 - 环形分布 */}
       {agents.map((agent, index) => {
         const angle = index * angleStep - Math.PI / 2
         const x = Math.cos(angle) * radius
@@ -128,8 +378,9 @@ function OfficeScene({ agents, onAgentClick }) {
           <AgentAvatar
             key={agent.id}
             agent={agent}
-            position={[x, 0.5, z]}
-            onClick={() => onAgentClick(agent)}
+            position={[x, 0, z]}
+            onClick={onAgentClick}
+            isSelected={selectedAgent?.id === agent.id}
           />
         )
       })}
@@ -139,69 +390,82 @@ function OfficeScene({ agents, onAgentClick }) {
         enablePan={true} 
         enableZoom={true} 
         minDistance={3}
-        maxDistance={15}
-        target={[0, 0, 0]}
+        maxDistance={20}
+        target={[0, 0.5, 0]}
+        maxPolarAngle={Math.PI / 2 - 0.1}
       />
     </>
   )
 }
 
-// 主组件
+// ============ 主组件 ============
 export default function VirtualOffice() {
-  const [agents, setAgents] = useState([])
+  const { agents, loading } = useOpenClawStatus()
   const [selectedAgent, setSelectedAgent] = useState(null)
-  const [loading, setLoading] = useState(true)
   
-  // 获取 Agent 状态
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch('http://localhost:3001/api/agents')
-        const data = await res.json()
-        setAgents(data)
-      } catch (err) {
-        console.error('获取状态失败:', err)
-        // 使用默认数据
-        setAgents([
-          { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'idle', currentTask: '待命中' },
-          { id: 'menxia', name: '门下省', role: '审核审议', status: 'busy', currentTask: '审批中' },
-          { id: 'shangshusheng', name: '尚书省', role: '执行派发', status: 'idle', currentTask: '待命中' },
-          { id: 'bingbu', name: '兵部', role: '战斗部署', status: 'idle', currentTask: '待命中' },
-        ])
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchStatus()
-    // 轮询更新
-    const interval = setInterval(fetchStatus, 5000)
-    return () => clearInterval(interval)
-  }, [])
+  // 计算统计数据
+  const stats = {
+    total: agents.length,
+    idle: agents.filter(a => a.status === 'idle').length,
+    busy: agents.filter(a => a.status === 'busy').length,
+    blocked: agents.filter(a => a.status === 'blocked').length,
+  }
   
   return (
-    <div style={{ width: '100%', height: '100vh', background: '#111827' }}>
+    <div style={{ width: '100%', height: '100vh', background: '#0f172a', overflow: 'hidden' }}>
       {/* 3D 场景 */}
-      <Canvas shadows camera={{ position: [0, 5, 8], fov: 50 }}>
-        <OfficeScene agents={agents} onAgentClick={setSelectedAgent} />
+      <Canvas 
+        shadows 
+        camera={{ position: [0, 6, 10], fov: 50 }}
+        gl={{ antialias: true }}
+      >
+        <OfficeScene 
+          agents={agents} 
+          onAgentClick={setSelectedAgent} 
+          selectedAgent={selectedAgent}
+        />
       </Canvas>
       
-      {/* 控制面板 */}
+      {/* 标题栏 */}
+      <div style={{
+        position: 'absolute',
+        top: '16px',
+        left: '16px',
+        color: 'white',
+        fontSize: '20px',
+        fontWeight: 'bold',
+        textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+      }}>
+        🏛️ 虚拟办公室 - 实时状态监控
+      </div>
+      
+      {/* 统计面板 */}
       <div style={{
         position: 'absolute',
         top: '16px',
         right: '16px',
-        background: 'rgba(0,0,0,0.8)',
-        borderRadius: '8px',
-        padding: '16px',
+        background: 'rgba(15, 23, 42, 0.9)',
+        borderRadius: '12px',
+        padding: '16px 20px',
         color: 'white',
-        minWidth: '200px',
+        minWidth: '180px',
+        border: '1px solid rgba(78, 204, 163, 0.3)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
       }}>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>📊 团队状态</h3>
-        <div style={{ display: 'flex', gap: '12px', fontSize: '12px' }}>
-          <span>🟢 {agents.filter(a => a.status === 'idle').length}</span>
-          <span>🟡 {agents.filter(a => a.status === 'busy').length}</span>
-          <span>🔴 {agents.filter(a => a.status === 'blocked').length}</span>
+        <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', opacity: 0.8 }}>📊 团队状态</h3>
+        <div style={{ display: 'flex', gap: '16px', fontSize: '14px', fontWeight: 'bold' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', color: '#4ade80' }}>{stats.idle}</div>
+            <div style={{ fontSize: '10px', opacity: 0.7 }}>🟢 待命</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', color: '#facc15' }}>{stats.busy}</div>
+            <div style={{ fontSize: '10px', opacity: 0.7 }}>🟡 工作</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', color: '#f87171' }}>{stats.blocked}</div>
+            <div style={{ fontSize: '10px', opacity: 0.7 }}>🔴 阻塞</div>
+          </div>
         </div>
       </div>
       
@@ -211,35 +475,87 @@ export default function VirtualOffice() {
           position: 'absolute',
           bottom: '16px',
           left: '16px',
-          background: 'rgba(0,0,0,0.9)',
-          borderRadius: '8px',
-          padding: '16px',
+          background: 'rgba(15, 23, 42, 0.95)',
+          borderRadius: '12px',
+          padding: '20px',
           color: 'white',
-          minWidth: '250px',
+          minWidth: '280px',
+          border: `2px solid ${selectedAgent.color || '#4ecca3'}`,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0 }}>{selectedAgent.name}</h3>
-            <button onClick={() => setSelectedAgent(null)} style={{
-              background: 'none',
-              border: 'none',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '18px',
-            }}>×</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px' }}>{selectedAgent.name}</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '13px', opacity: 0.7 }}>{selectedAgent.role}</p>
+            </div>
+            <button 
+              onClick={() => setSelectedAgent(null)} 
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '20px',
+                opacity: 0.7,
+                padding: '0 4px',
+              }}
+            >
+              ×
+            </button>
           </div>
-          <p style={{ margin: '8px 0', fontSize: '14px', opacity: 0.8 }}>{selectedAgent.role}</p>
-          <div style={{ fontSize: '12px', marginTop: '12px' }}>
-            <div>状态: <span style={{
-              color: selectedAgent.status === 'idle' ? '#4ade80' : 
-                     selectedAgent.status === 'busy' ? '#facc15' : '#f87171'
-            }}>{selectedAgent.status}</span></div>
-            <div>当前任务: {selectedAgent.currentTask || '无'}</div>
-            {selectedAgent.load !== undefined && (
-              <div>负载: {Math.round(selectedAgent.load * 100)}%</div>
-            )}
+          
+          <div style={{ marginTop: '16px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span>状态:</span>
+              <span style={{
+                color: selectedAgent.status === 'idle' ? '#4ade80' : 
+                       selectedAgent.status === 'busy' ? '#facc15' : '#f87171',
+                fontWeight: 'bold',
+              }}>
+                {selectedAgent.status === 'idle' ? '🟢 待命中' : 
+                 selectedAgent.status === 'busy' ? '🟡 工作中' : '🔴 阻塞中'}
+              </span>
+            </div>
+            <div style={{ opacity: 0.8 }}>
+              <div>当前任务: <strong>{selectedAgent.currentTask || '无'}</strong></div>
+            </div>
+          </div>
+          
+          {/* 状态进度条 */}
+          <div style={{ marginTop: '12px' }}>
+            <div style={{ 
+              height: '6px', 
+              background: 'rgba(255,255,255,0.1)', 
+              borderRadius: '3px',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                width: selectedAgent.status === 'idle' ? '30%' : 
+                       selectedAgent.status === 'busy' ? '70%' : '90%',
+                height: '100%',
+                background: selectedAgent.status === 'idle' ? '#4ade80' : 
+                           selectedAgent.status === 'busy' ? '#facc15' : '#f87171',
+                borderRadius: '3px',
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
           </div>
         </div>
       )}
+      
+      {/* 操作提示 */}
+      <div style={{
+        position: 'absolute',
+        bottom: '16px',
+        right: '16px',
+        background: 'rgba(0,0,0,0.6)',
+        borderRadius: '8px',
+        padding: '10px 14px',
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: '11px',
+      }}>
+        🖱️ 拖拽旋转 | 滚轮缩放 | 点击查看详情
+      </div>
       
       {/* 加载状态 */}
       {loading && (
@@ -249,8 +565,23 @@ export default function VirtualOffice() {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           color: 'white',
+          fontSize: '16px',
         }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid rgba(78, 204, 163, 0.3)',
+            borderTopColor: '#4ecca3',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 12px',
+          }} />
           加载中...
+          <style>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       )}
     </div>

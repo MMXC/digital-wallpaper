@@ -1,150 +1,238 @@
 /**
- * Slack 中间件 - Avatar Action Gateway
- * 
- * 架构: Slack Socket Mode → 解析JSON契约 → WebSocket转发 → Wallpaper Engine
- * 端口: 18790 (WebSocket)
+ * 数字人壁纸 - Agent 状态 API 服务
+ * 从 OpenClaw Gateway 获取 Agent 状态并提供给前端
+ * 端口: 3001
  */
 
-import { App } from '@slack/bolt';
-import { WebSocketServer } from 'ws';
-import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { spawn } from 'child_process';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// ============ 配置 ============
-const PORT = 18790;
-const WS_HOST = '127.0.0.1';
+const app = express();
+const PORT = 3001;
 
-// Slack App 配置 (需要从 Slack API 获取)
-const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET || '';
-const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN || '';
-const SLACK_APP_TOKEN = process.env.SLACK_APP_TOKEN || '';
+app.use(cors());
+app.use(express.json());
 
-// ============ WebSocket 服务端 (转发给壁纸) ============
-const wss = new WebSocketServer({ host: WS_HOST, port: PORT });
+// ============ OpenClaw 状态获取 ============
 
-console.log(`🎯 WebSocket服务端启动: ws://${WS_HOST}:${PORT}`);
-
-wss.on('connection', (ws) => {
-  console.log('✅ Wallpaper Engine 已连接');
-  
-  ws.on('close', () => {
-    console.log('❌ Wallpaper Engine 断开连接');
-  });
-});
-
-// 广播消息给所有连接的壁纸客户端
-function broadcastToWallpaper(data) {
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) { // WebSocket.OPEN
-      client.send(JSON.stringify(data));
-      console.log('📤 已转发到壁纸:', data.action);
-    }
+// 运行 openclaw agents list 命令
+function getOpenClawAgents() {
+  return new Promise((resolve) => {
+    const process = spawn('openclaw', ['agents', 'list'], {
+      shell: true,
+      env: { ...process.env }
+    });
+    
+    let output = '';
+    let errorOutput = '';
+    
+    process.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    process.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+    
+    process.on('close', (code) => {
+      if (code !== 0) {
+        console.error('OpenClaw CLI error:', errorOutput);
+        resolve(null);
+        return;
+      }
+      
+      // 解析输出
+      try {
+        const agents = parseAgentsList(output);
+        resolve(agents);
+      } catch (e) {
+        console.error('Parse error:', e);
+        resolve(null);
+      }
+    });
+    
+    process.on('error', (err) => {
+      console.error('Spawn error:', err);
+      resolve(null);
+    });
   });
 }
 
-// ============ Slack Socket Mode App ============
-const app = new App({
-  signingSecret: SLACK_SIGNING_SECRET,
-  token: SLACK_BOT_TOKEN,
-  socketMode: true,
-  appToken: SLACK_APP_TOKEN,
-});
-
-console.log('🔌 Slack Socket Mode 启动中...');
-
-// ============ 消息处理 ============
-/**
- * 解析 Slack 消息中的 JSON 契约
- * 支持格式:
- * {
- *   "protocol": "avatar_action_v1",
- *   "agent": "Dev_A",
- *   "action": "speak",
- *   "text": "代码已提交",
- *   "emotion": "happy",
- *   "target": "PM_Bot"
- * }
- */
-function parseAvatarAction(messageText) {
-  try {
-    // 尝试提取 JSON (可能包含在代码块中)
-    let jsonStr = messageText.trim();
-    
-    // 去除可能的 ```json 或 ``` 包裹
-    if (jsonStr.startsWith('```json')) {
-      jsonStr = jsonStr.slice(7);
-    } else if (jsonStr.startsWith('```')) {
-      jsonStr = jsonStr.slice(3);
-    }
-    if (jsonStr.endsWith('```')) {
-      jsonStr = jsonStr.slice(0, -3);
+// 解析 openclaw agents list 输出
+function parseAgentsList(output) {
+  const agents = [];
+  const lines = output.split('\n');
+  
+  let currentAgent = null;
+  
+  for (const line of lines) {
+    // 检测 Agent 名称 (如 "taizi (default)")
+    const nameMatch = line.match(/^-\s+(\w+)/);
+    if (nameMatch) {
+      if (currentAgent) {
+        agents.push(currentAgent);
+      }
+      currentAgent = {
+        id: nameMatch[1],
+        name: nameMatch[1],
+        status: 'idle',  // 默认状态
+        currentTask: '待命中',
+        color: getAgentColor(nameMatch[1]),
+      };
+      
+      // 检查是否是 default
+      if (line.includes('(default)')) {
+        currentAgent.isDefault = true;
+      }
     }
     
-    const parsed = JSON.parse(jsonStr.trim());
+    // 检测 Identity
+    if (currentAgent && line.includes('Identity:')) {
+      const identityMatch = line.match(/Identity:\s+(.+)/);
+      if (identityMatch) {
+        currentAgent.identity = identityMatch[1].trim();
+      }
+    }
     
-    // 验证协议版本
-    if (parsed.protocol !== 'avatar_action_v1') {
-      return null;
+    // 检测 Workspace
+    if (currentAgent && line.includes('Workspace:')) {
+      const wsMatch = line.match(/Workspace:\s+(.+)/);
+      if (wsMatch) {
+        currentAgent.workspace = wsMatch[1].trim();
+      }
+    }
+  }
+  
+  if (currentAgent) {
+    agents.push(currentAgent);
+  }
+  
+  return agents;
+}
+
+// 根据 Agent 名称获取颜色
+function getAgentColor(agentId) {
+  const colors = {
+    'taizi': '#8b5cf6',     // 紫色
+    'zhongshu': '#3b82f6',  // 蓝色
+    'menxia': '#10b981',    // 绿色
+    'shangshu': '#f59e0b',  // 橙色
+    'bingbu': '#ef4444',    // 红色
+    'gongbu': '#6366f1',    // 靛蓝
+    'hubu': '#14b8a6',      // 青色
+    'libu': '#f97316',      // 橙黄
+    'xingbu': '#84cc16',    // 草绿
+  };
+  return colors[agentId] || '#6b7280';
+}
+
+// 根据 Agent 名称获取角色
+function getAgentRole(agentId) {
+  const roles = {
+    'taizi': '项目总控',
+    'zhongshu': '规划决策',
+    'menxia': '审核审议',
+    'shangshu': '执行派发',
+    'bingbu': '战斗部署',
+    'gongbu': '工程建设',
+    'hubu': '财政资源',
+    'libu': '外交礼仪',
+    'xingbu': '司法审判',
+  };
+  return roles[agentId] || '未知职能';
+}
+
+// ============ 模拟状态更新 ============
+
+// 模拟任务状态（实际应从 OpenClaw Gateway 获取）
+function simulateTaskStatus(agents) {
+  // 基于时间和随机因素更新状态
+  const now = Date.now();
+  
+  return agents.map((agent, index) => {
+    // 伪随机状态生成
+    const seed = (now + index * 1000) % 10000;
+    let status = 'idle';
+    let currentTask = '待命中';
+    
+    if (seed < 2000) {
+      status = 'idle';
+      currentTask = '待命中';
+    } else if (seed < 7000) {
+      status = 'busy';
+      const tasks = ['处理审批', '执行任务', '分析数据', '撰写报告', '协调资源'];
+      currentTask = tasks[index % tasks.length];
+    } else {
+      status = 'blocked';
+      currentTask = '等待资源';
     }
     
     return {
-      protocol: parsed.protocol,
-      agent: parsed.agent || 'unknown',
-      action: parsed.action || 'idle',
-      text: parsed.text || '',
-      emotion: parsed.emotion || 'neutral',
-      target: parsed.target || '',
-      timestamp: new Date().toISOString()
+      ...agent,
+      role: agent.role || getAgentRole(agent.id),
+      status,
+      currentTask,
+      lastUpdate: new Date().toISOString(),
     };
-  } catch (e) {
-    return null;
-  }
+  });
 }
 
-// 监听 Slack 消息
-app.message(async ({ message, say }) => {
-  // 忽略机器人消息
-  if (message.subtype === 'bot_message') return;
-  
-  const text = message.text || '';
-  console.log('📥 收到Slack消息:', text.substring(0, 100));
-  
-  // 解析 JSON 契约
-  const avatarAction = parseAvatarAction(text);
-  
-  if (avatarAction) {
-    console.log('✅ 解析到Avatar动作契约:', avatarAction);
+// ============ API 路由 ============
+
+// 获取所有 Agent 状态
+app.get('/api/agents', async (req, res) => {
+  try {
+    console.log('📡 收到 Agent 状态请求');
     
-    // 转发给 Wallpaper Engine
-    broadcastToWallpaper(avatarAction);
+    const openClawAgents = await getOpenClawAgents();
     
-    // 回复确认
-    await say({
-      text: `✅ 已转发动作给数字人: ${avatarAction.action} (${avatarAction.emotion})`,
-      thread_ts: message.ts
-    });
-  } else {
-    console.log('ℹ️ 消息不包含Avatar契约，跳过');
+    let agents;
+    if (openClawAgents && openClawAgents.length > 0) {
+      agents = simulateTaskStatus(openClawAgents);
+      console.log(`✅ 从 OpenClaw 获取到 ${agents.length} 个 Agent`);
+    } else {
+      // 使用默认虚拟办公场景的 Agent
+      agents = [
+        { id: 'taizi', name: '太子', role: '项目总控', status: 'idle', currentTask: '监控全局', color: '#8b5cf6' },
+        { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'idle', currentTask: '待命中', color: '#3b82f6' },
+        { id: 'menxia', name: '门下省', role: '审核审议', status: 'busy', currentTask: '审批中', color: '#10b981' },
+        { id: 'shangshu', name: '尚书省', role: '执行派发', status: 'idle', currentTask: '待命中', color: '#f59e0b' },
+        { id: 'bingbu', name: '兵部', role: '战斗部署', status: 'blocked', currentTask: '等待资源', color: '#ef4444' },
+        { id: 'gongbu', name: '工部', role: '工程建设', status: 'idle', currentTask: '待命中', color: '#6366f1' },
+        { id: 'hubu', name: '户部', role: '财政资源', status: 'busy', currentTask: '核算中', color: '#14b8a6' },
+        { id: 'libu', name: '礼部', role: '外交礼仪', status: 'idle', currentTask: '待命中', color: '#f97316' },
+        { id: 'xingbu', name: '刑部', role: '司法审判', status: 'idle', currentTask: '待命中', color: '#84cc16' },
+      ];
+      console.log('📋 使用默认虚拟办公场景 Agent');
+    }
+    
+    res.json(agents);
+  } catch (error) {
+    console.error('❌ 获取 Agent 状态失败:', error);
+    res.status(500).json({ error: '获取状态失败' });
   }
+});
+
+// 健康检查
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'digital-wallpaper-api'
+  });
 });
 
 // ============ 启动 ============
-(async () => {
-  try {
-    await app.start();
-    console.log('✅ Slack Bolt App 已启动 (Socket Mode)');
-    console.log('📋 等待 Slack 消息...');
-  } catch (error) {
-    console.error('❌ 启动失败:', error);
-    process.exit(1);
-  }
-})();
 
-// ============ 健康检查 ============
-process.on('SIGTERM', () => {
-  console.log('🛑 收到SIGTERM，关闭服务...');
-  wss.close();
-  app.stop();
-  process.exit(0);
+app.listen(PORT, () => {
+  console.log(`🏛️ 数字人壁纸 API 服务已启动: http://localhost:${PORT}`);
+  console.log(`📋 API 端点: http://localhost:${PORT}/api/agents`);
 });
+
+export default app;
