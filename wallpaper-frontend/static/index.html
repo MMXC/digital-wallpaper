@@ -166,7 +166,18 @@
     const statusEl = document.getElementById('status');
 
     function connect() {
-      ws = new WebSocket('ws://localhost:18790');
+      console.log('🔌 尝试连接 WebSocket ws://localhost:18790...');
+      statusEl.textContent = '🔄 连接中...';
+      statusEl.className = 'disconnected';
+      
+      try {
+        ws = new WebSocket('ws://localhost:18790');
+      } catch(e) {
+        console.error('❌ WebSocket创建失败:', e);
+        statusEl.textContent = '❌ 创建失败: ' + e.message;
+        setTimeout(connect, 5000);
+        return;
+      }
 
       ws.onopen = () => {
         console.log('✅ 已连接 Slack 中间件');
@@ -187,15 +198,16 @@
         }
       };
 
-      ws.onclose = () => {
-        console.log('🔌 断开连接，5秒后重连...');
-        statusEl.textContent = '🔴 未连接';
+      ws.onclose = (e) => {
+        console.log('🔌 断开连接，5秒后重连...', e.code, e.reason);
+        statusEl.textContent = '🔴 未连接 (' + e.code + ')';
         statusEl.className = 'disconnected';
         setTimeout(connect, 5000);
       };
 
       ws.onerror = (err) => {
-        console.error('⚠️ WebSocket错误');
+        console.error('⚠️ WebSocket错误:', err);
+        statusEl.textContent = '❌ 连接错误';
       };
     }
 
