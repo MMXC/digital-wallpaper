@@ -2,6 +2,21 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Text, Html, Float, useGLTF, Environment } from '@react-three/drei'
 import { useState, useEffect, useRef } from 'react'
 
+// ============ 背景配置 ============
+const BACKGROUND_CONFIG = {
+  mode: 'static',  // 'static' | 'video' | 'environment'
+  static: {
+    color: '#0f172a',  // 默认深蓝色
+    image: null,       // 可选：背景图URL
+  },
+  video: {
+    url: null,         // 视频URL
+  },
+  environment: {
+    preset: 'city',   // 'city' | 'studio' | 'park' | 'dawn' 等
+  }
+}
+
 // ============ WebSocket 连接 Hook ============
 function useWebSocket(onMessage) {
   const wsRef = useRef(null)
@@ -495,9 +510,47 @@ export default function VirtualOffice() {
     busy: agents.filter(a => a.status === 'busy').length,
     blocked: agents.filter(a => a.status === 'blocked').length,
   }
+  // 渲染背景
+  const renderBackground = () => {
+    const { mode, static: staticConfig, video: videoConfig, environment: envConfig } = BACKGROUND_CONFIG
+    
+    if (mode === 'static') {
+      return staticConfig.image ? (
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundImage: `url(${staticConfig.image})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }} />
+      ) : null
+    }
+    
+    if (mode === 'video' && videoConfig.url) {
+      return (
+        <video
+          autoPlay loop muted playsInline
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, width: '100%', height: '100%',
+            objectFit: 'cover',
+          }}
+        >
+          <source src={videoConfig.url} />
+        </video>
+      )
+    }
+    
+    if (mode === 'environment') {
+      return <Environment preset={envConfig.preset} background />
+    }
+    
+    return null
+  }
   
   return (
-    <div style={{ width: '100%', height: '100vh', background: '#0f172a', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100vh', background: BACKGROUND_CONFIG.mode === 'static' ? BACKGROUND_CONFIG.static.color : '#000', overflow: 'hidden' }}>
+      {renderBackground()}
       {/* 3D 场景 */}
       <Canvas 
         shadows 
