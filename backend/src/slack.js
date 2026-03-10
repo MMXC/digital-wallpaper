@@ -16,6 +16,13 @@ const config = {
   token: process.env.SLACK_BOT_TOKEN || '',
   channelId: process.env.SLACK_CHANNEL_ID || 'C081L0VCKL4', // 默认频道
   pollingInterval: 3000, // 3秒轮询
+  
+  // 监听配置
+  listenUsers: process.env.SLACK_LISTEN_USERS ? process.env.SLACK_LISTEN_USERS.split(',') : null,  // 只监听指定用户，null=监听全部
+  ignoreBots: true,  // 忽略机器人消息
+  
+  // 消息过滤：匹配关键词才处理
+  filterKeywords: ['任务', 'agent', 'status', '状态'],  // null=处理所有消息
 };
 
 let pollingTimer = null;
@@ -100,9 +107,26 @@ async function fetchMessages() {
         lastTimestamp = result.messages[0].ts;
       }
       
-      // 返回消息（排除机器人自己的消息）
+      // 返回消息（过滤）
       return result.messages
-        .filter(msg => !msg.bot_id && msg.subtype !== 'bot_message')
+        .filter(msg => {
+          // 排除机器人消息
+          if (config.ignoreBots && (msg.bot_id || msg.subtype === 'bot_message')) return false;
+          
+          // 过滤指定用户
+          if (config.listenUsers && config.listenUsers.length > 0) {
+            const userId = msg.user;
+            if (!userId || !config.listenUsers.includes(userId)) return false;
+          }
+          
+          // 关键词过滤
+          if (config.filterKeywords && config.filterKeywords.length > 0) {
+            const text = msg.text || '';
+            if (!config.filterKeywords.some(kw => text.includes(kw))) return false;
+          }
+          
+          return true;
+        })
         .reverse(); // 从旧到新
     }
   } catch (error) {
