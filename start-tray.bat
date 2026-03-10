@@ -1,58 +1,58 @@
 @echo off
 chcp 65001 >nul
-title Digital Wallpaper - 托盘版启动
+title Digital Wallpaper - Tray Mode
 
 echo ============================================
-echo   🎭 Digital Wallpaper 托盘版启动
-echo   (支持系统托盘、最小化、右键菜单)
+echo   [=] Digital Wallpaper - Tray Mode
+echo   (System tray, minimize, right-click menu)
 echo ============================================
 echo.
 
-REM 检查 Node.js
+REM Check Node.js
 where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ❌ 错误: 未找到 Node.js
-    echo 请先安装 Node.js: https://nodejs.org/
+    echo [X] Error: Node.js not found
+    echo Please install Node.js: https://nodejs.org/
     pause
     exit /b 1
 )
 
-REM 检查 npm
+REM Check npm
 where npm >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ❌ 错误: 未找到 npm
+    echo [X] Error: npm not found
     pause
     exit /b 1
 )
 
-echo ✅ Node.js 版本:
+echo [=] Node.js version:
 node --version
 echo.
 
 cd /d "%~dp0"
 
-REM 检查 Electron 依赖
-echo 📦 检查托盘应用依赖...
+REM Check Electron dependencies
+echo [*] Checking tray app dependencies...
 if not exist "windows-tray\node_modules" (
-    echo    首次运行，正在安装依赖...
+    echo    First run, installing dependencies...
     cd /d "%~dp0windows-tray"
     call npm install
     if %errorlevel% neq 0 (
-        echo ❌ 依赖安装失败
+        echo [X] Dependency installation failed
         pause
         exit /b 1
     )
 )
 
-REM 检查 Backend 依赖
-echo 📦 检查 Backend 依赖...
+REM Check Backend dependencies
+echo [*] Checking Backend dependencies...
 if not exist "backend\node_modules" (
     cd /d "%~dp0backend"
     call npm install
 )
 
-REM 检查 Frontend 依赖  
-echo 📦 检查 Frontend 依赖...
+REM Check Frontend dependencies  
+echo [*] Checking Frontend dependencies...
 if not exist "wallpaper-frontend\node_modules" (
     cd /d "%~dp0wallpaper-frontend"
     call npm install
@@ -62,21 +62,21 @@ cd /d "%~dp0"
 
 echo.
 echo ============================================
-echo   🚀 启动托盘应用
+echo   [^] Launching Tray App
 echo ============================================
 echo.
-echo 📋 功能说明:
-echo    - 任务栏显示应用图标
-echo    - 右键托盘图标显示菜单
-echo    - 最小化到系统托盘
-echo    - 启动/停止服务
-echo    - 设置 Slack Bot
+echo [*] Features:
+echo    - App icon in taskbar
+echo    - Right-click tray icon for menu
+echo    - Minimize to system tray
+echo    - Start/Stop services
+echo    - Configure Slack Bot
 echo.
 
-REM 启动托盘应用
+REM Launch tray app
 cd /d "%~dp0windows-tray"
 start "Digital Wallpaper" node tray-app.js
 
-echo ✅ 已启动！托盘图标应该出现在任务栏
+echo [=] Started! Tray icon should appear in taskbar
 echo.
 pause
