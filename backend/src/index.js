@@ -32,15 +32,16 @@ app.use(express.json());
 function getConfiguredAgents() {
   if (process.env.AGENT_LIST) {
     try {
-      // 处理 Windows 环境变量引号问题
-      let jsonStr = process.env.AGENT_LIST.trim();
-      if (jsonStr.startsWith('"') && jsonStr.endsWith('"')) {
-        jsonStr = jsonStr.slice(1, -1);
-      }
+      // 处理各种格式问题
+      let jsonStr = process.env.AGENT_LIST
+        .replace(/^["']|["']$/g, '')  // 去除首尾引号
+        .replace(/[\r\n]+/g, '')       // 去除换行
+        .replace(/\\"/g, '"')         // 处理转义引号
+        .trim();
       return JSON.parse(jsonStr);
     } catch (e) {
       console.error('AGENT_LIST 解析失败:', e.message);
-      console.error('请检查 .env 文件中的 AGENT_LIST 格式');
+      console.error('原始值:', process.env.AGENT_LIST.substring(0, 100));
       return null;
     }
   }
@@ -51,10 +52,11 @@ function getConfiguredAgents() {
 function parseJsonEnv(key) {
   if (!process.env[key]) return null;
   try {
-    let jsonStr = process.env[key].trim();
-    if (jsonStr.startsWith('"') && jsonStr.endsWith('"')) {
-      jsonStr = jsonStr.slice(1, -1);
-    }
+    let jsonStr = process.env[key]
+      .replace(/^["']|["']$/g, '')
+      .replace(/[\r\n]+/g, '')
+      .replace(/\\"/g, '"')
+      .trim();
     return JSON.parse(jsonStr);
   } catch (e) {
     console.error(`${key} 解析失败:`, e.message);
