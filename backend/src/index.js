@@ -39,7 +39,34 @@ app.get('/admin', (req, res) => {
 
 // 前端首页
 app.get('/', (req, res) => {
-  res.sendFile(join(dirname(fileURLToPath(import.meta.url)), '../../dist/index.html'));
+  const distPath = join(dirname(fileURLToPath(import.meta.url)), '../../dist/index.html');
+  if (existsSync(distPath)) {
+    res.sendFile(distPath);
+  } else {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>数字人壁纸 - 需要构建</title>
+        <style>
+          body { font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; background: #0f172a; color: #fff; }
+          .box { background: #1e293b; padding: 30px; border-radius: 12px; text-align: center; }
+          .btn { display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 20px; }
+          code { background: #334155; padding: 2px 6px; border-radius: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="box">
+          <h1>🎭 需要构建前端</h1>
+          <p>请先运行以下命令构建前端：</p>
+          <p><code>npm run build</code></p>
+          <p>然后刷新此页面</p>
+          <a href="/admin" class="btn">打开管理界面</a>
+        </div>
+      </body>
+      </html>
+    `);
+  }
 });
 
 // ============ OpenClaw 状态获取 ============
