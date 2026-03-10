@@ -75,7 +75,7 @@ echo.
 
 REM Launch tray app
 cd /d "%~dp0windows-tray"
-start "Digital Wallpaper" node tray-app.js
+start "Digital Wallpaper" npx electron .
 
 echo [=] Started! Tray icon should appear in taskbar
 echo.
