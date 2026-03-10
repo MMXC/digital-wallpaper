@@ -29,6 +29,8 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(join(dirname(fileURLToPath(import.meta.url)), '../public')));
+app.use('/assets', express.static(join(dirname(fileURLToPath(import.meta.url)), '../../dist/assets')));
+app.use('/uploads', express.static(join(dirname(fileURLToPath(import.meta.url)), '../public/uploads')));
 
 // 管理页面
 app.get('/admin', (req, res) => {
@@ -377,6 +379,42 @@ app.delete('/api/uploads/:filename', (req, res) => {
     res.json({ success: true });
   } else {
     res.status(404).json({ error: '文件不存在' });
+  }
+});
+
+// 导入单个模块（天空盒/特效/材质）
+app.post('/api/import/module', upload.single('module'), (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: '没有文件' });
+    return;
+  }
+  
+  const { type } = req.body; // environment, effect, material, avatar
+  const filename = req.file.filename;
+  const moduleDir = join(dirname(fileURLToPath(import.meta.url)), '../../resources', type);
+  
+  // 创建模块目录
+  if (!existsSync(moduleDir)) {
+    mkdirSync(moduleDir, { recursive: true });
+  }
+  
+  // 移动文件
+  const destPath = join(moduleDir, filename);
+  const srcPath = join(uploadDir, filename);
+  
+  try {
+    // 如果是 zip，解压
+    if (filename.endsWith('.zip')) {
+      // TODO: 解压逻辑
+      res.json({ success: true, message: '模块已上传，待处理', type, filename });
+    } else {
+      // 直接复制
+      const fs = require('fs');
+      fs.copyFileSync(srcPath, destPath);
+      res.json({ success: true, type, filename, url: `/resources/${type}/${filename}` });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

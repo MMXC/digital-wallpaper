@@ -833,9 +833,12 @@
     
     function showPage(page) {
       document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-      document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
-      document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-      document.getElementById(`page-${page}`).style.display = 'block';
+      const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+      if (navItem) navItem.classList.add('active');
+      
+      document.querySelectorAll('.page').forEach(p => { if (p) p.style.display = 'none'; });
+      const targetPage = document.getElementById(`page-${page}`);
+      if (targetPage) targetPage.style.display = 'block';
       
       if (page === 'messages') refreshMessages();
       if (page === 'contracts') loadContracts();
