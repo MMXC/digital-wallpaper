@@ -23,6 +23,9 @@ const config = {
   
   // 消息过滤：包含关键词 OR 包含 action 的 JSON 契约才处理
   filterKeywords: ['任务', 'agent', 'status', '状态', 'update', 'list'],
+  
+  // 忽略的 action 类型
+  ignoreActions: ['dance', 'wave', 'greet'],
 };
 
 let pollingTimer = null;
@@ -154,6 +157,10 @@ async function processMessages() {
       const contract = parseContract(msg.text);
       
       if (contract.valid) {
+        // 跳过忽略的 action
+        if (config.ignoreActions && config.ignoreActions.includes(contract.action)) {
+          continue;
+        }
         console.log('📨 收到有效契约:', contract);
         messageCallback(contract, msg);
       }
