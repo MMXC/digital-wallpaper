@@ -801,10 +801,11 @@
     
     // Render resources
     document.getElementById('environments-grid').innerHTML = environments.map(e => `
-      <div class="resource-card" onclick="selectResource(this, '${e.id}')">
+      <div class="resource-card" data-id="${e.id}">
         <div class="resource-icon">${e.icon}</div>
         <div class="resource-name">${e.name}</div>
         <div class="resource-desc">${e.desc}</div>
+        <button class="btn btn-primary" style="margin-top: 12px; width: 100%;" onclick="applyEnvironment('${e.id}')">应用</button>
       </div>
     `).join('');
     
@@ -812,6 +813,25 @@
       document.querySelectorAll('.resource-card').forEach(c => c.classList.remove('active'));
       el.classList.add('active');
       showToast(`已选择: ${id}`);
+    }
+    
+    // 应用天空盒
+    async function applyEnvironment(preset) {
+      try {
+        const res = await fetch('/api/config/environment', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preset })
+        });
+        const data = await res.json();
+        showToast(`已应用天空盒: ${preset}`);
+        // 刷新预览
+        setTimeout(() => {
+          document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
+        }, 500);
+      } catch(e) {
+        showToast('应用失败: ' + e.message);
+      }
     }
   </script>
 </body>
