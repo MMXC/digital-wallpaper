@@ -30,6 +30,12 @@ app.use(express.json());
 
 // 从环境变量获取 Agent 列表
 function getConfiguredAgents() {
+  // 优先使用动态 Agent 列表（从 Slack 消息获取）
+  if (dynamicAgents && Array.isArray(dynamicAgents) && dynamicAgents.length > 0) {
+    console.log(`✅ 使用动态 Agent 列表 (${dynamicAgents.length} 个)`);
+    return dynamicAgents;
+  }
+  
   if (process.env.AGENT_LIST) {
     try {
       console.log('AGENT_LIST 原始值:', process.env.AGENT_LIST);
@@ -164,6 +170,9 @@ const server = createServer(app);
 // 初始化 WebSocket 服务器
 initWebSocketServer(server);
 
+// 动态 Agent 列表存储
+let dynamicAgents = null;
+
 // 初始化 Slack 客户端并设置消息处理
 initSlackClient(process.env.SLACK_BOT_TOKEN);
 onMessage((contract, msg) => {
@@ -190,6 +199,19 @@ onMessage((contract, msg) => {
       type: 'broadcast',
       data: contract.data
     });
+  } else if (contract.action === 'agent_list_update') {
+    // 更新 Agent 列表
+    if (contract.data && contract.data.agents && Array.isArray(contract.data.agents)) {
+      dynamicAgents = contract.data.agents;
+      console.log(`✅ Agent 列表已更新: ${dynamicAgents.length} 个 Agent`);
+      
+      // 广播给所有客户端
+      const { broadcast } = require('./websocket.js');
+      broadcast({
+        type: 'agent_update',
+        agents: dynamicAgents
+      });
+    }
   }
 });
 
