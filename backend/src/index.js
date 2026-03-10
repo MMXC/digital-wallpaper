@@ -126,6 +126,9 @@ app.get('/api/slack/status', (req, res) => {
 // 前端配置（Agent列表、头像、名称等）
 app.get('/api/config', (req, res) => {
   const config = {
+    // WebSocket 地址
+    wsUrl: process.env.WS_URL || 'ws://localhost:3001',
+    
     // Agent 列表（从环境变量或默认）
     agents: parseJsonEnv('AGENT_LIST'),
     

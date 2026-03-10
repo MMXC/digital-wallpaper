@@ -37,13 +37,17 @@ const AGENT_CONFIG = {
 }
 
 // ============ WebSocket 连接 Hook ============
+const WS_CONFIG = {
+  url: 'ws://localhost:3001',  // 可配置 WebSocket 地址
+}
+
 function useWebSocket(onMessage) {
   const wsRef = useRef(null)
   const [connected, setConnected] = useState(false)
   
   useEffect(() => {
-    // 尝试连接 WebSocket
-    const wsUrl = `ws://${window.location.hostname}:3001`
+    // 使用配置的 WebSocket 地址
+    const wsUrl = WS_CONFIG.url
     let ws = null
     let reconnectTimer = null
     
@@ -131,6 +135,7 @@ function useOpenClawStatus(onTaskUpdate) {
       .catch(() => fetch('/config.json', { signal: AbortSignal.timeout(1000) }).then(res => res.ok ? res.json() : Promise.reject()))
       .then(config => {
         if (!config) return
+        if (config.wsUrl) WS_CONFIG.url = config.wsUrl
         if (config.avatars) Object.assign(AGENT_CONFIG.avatars, config.avatars)
         if (config.names) Object.assign(AGENT_CONFIG.names, config.names)
         if (config.background) {
