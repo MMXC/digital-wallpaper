@@ -32,16 +32,17 @@ app.use(express.json());
 function getConfiguredAgents() {
   if (process.env.AGENT_LIST) {
     try {
+      console.log('AGENT_LIST 原始值:', process.env.AGENT_LIST);
       // 处理各种格式问题
       let jsonStr = process.env.AGENT_LIST
         .replace(/^["']|["']$/g, '')  // 去除首尾引号
         .replace(/[\r\n]+/g, '')       // 去除换行
         .replace(/\\"/g, '"')         // 处理转义引号
         .trim();
+      console.log('AGENT_LIST 处理后:', jsonStr);
       return JSON.parse(jsonStr);
     } catch (e) {
       console.error('AGENT_LIST 解析失败:', e.message);
-      console.error('原始值:', process.env.AGENT_LIST.substring(0, 100));
       return null;
     }
   }
