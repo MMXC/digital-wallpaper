@@ -16,6 +16,7 @@ import { initSlackClient, onMessage, startPolling, stopPolling, simulateMessage,
 import { getProtocols, generateHelpText, getConfigSchema } from './protocols.js';
 import { initWebSocketServer, broadcastToAgent, broadcast, getClientCount } from './websocket.js';
 import configStore from './config-store.js';
+import { checkForUpdates, getResources, CURRENT_VERSION } from './updater.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -255,6 +256,23 @@ app.put('/api/config/runtime', (req, res) => {
   broadcast({ type: 'config_update', data: { agents, avatars, names } });
   
   res.json({ success: true });
+});
+
+// 检查更新
+app.get('/api/update/check', async (req, res) => {
+  const result = await checkForUpdates();
+  res.json(result);
+});
+
+// 获取资源列表
+app.get('/api/resources', async (req, res) => {
+  const resources = await getResources();
+  res.json(resources);
+});
+
+// 获取当前版本
+app.get('/api/version', (req, res) => {
+  res.json({ version: CURRENT_VERSION });
 });
 
 // 模拟消息（测试用）

@@ -508,6 +508,10 @@
       
       <div class="nav-section">
         <div class="nav-label">系统</div>
+        <div class="nav-item" data-page="updates">
+          <span class="nav-icon">🔄</span>
+          <span>更新与资源</span>
+        </div>
         <div class="nav-item" data-page="settings">
           <span class="nav-icon">⚙️</span>
           <span>设置</span>
@@ -665,6 +669,58 @@
         </div>
       </div>
       
+      <!-- Updates & Resources -->
+      <div class="page" id="page-updates" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">更新与资源</h1>
+            <p class="page-subtitle">检查更新、管理资源包</p>
+          </div>
+          <button class="btn btn-primary" onclick="checkForUpdates()">🔄 检查更新</button>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📦 版本信息</h3>
+          </div>
+          <div style="display: flex; align-items: center; gap: 20px;">
+            <div style="flex: 1;">
+              <div style="font-size: 13px; color: var(--text-secondary);">当前版本</div>
+              <div style="font-size: 24px; font-weight: 700;" id="current-version">v0.1.0</div>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; color: var(--text-secondary);">最新版本</div>
+              <div style="font-size: 24px; font-weight: 700;" id="latest-version">-</div>
+            </div>
+            <div id="update-status"></div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="🌐 内置资源</hcard-title">3>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">天空盒</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="builtin-environments"></div>
+          </div>
+          <div>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">特效</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="builtin-effects"></div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📥 下载资源包</h3>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+            从 GitHub 下载更多天空盒、特效等资源
+          </p>
+          <button class="btn btn-secondary" onclick="openGitHub()">🌐 访问 GitHub 资源</button>
+        </div>
+      </div>
+      
       <!-- Settings -->
       <div class="page" id="page-settings" style="display: none;">
         <div class="page-header">
@@ -748,6 +804,7 @@
       if (page === 'messages') refreshMessages();
       if (page === 'contracts') loadContracts();
       if (page === 'settings') loadRuntimeConfig();
+      if (page === 'updates') { loadVersion(); checkForUpdates(); loadResources(); }
     }
     
     // Toast
@@ -902,6 +959,70 @@
       } catch(e) {
         showToast('应用失败: ' + e.message);
       }
+    }
+    
+    // 检查更新
+    async function checkForUpdates() {
+      try {
+        const res = await fetch('/api/update/check');
+        const data = await res.json();
+        
+        document.getElementById('latest-version').textContent = 'v' + data.latest;
+        
+        if (data.needsUpdate) {
+          document.getElementById('update-status').innerHTML = 
+            `<button class="btn btn-primary" onclick="openRelease()">⬆️ 有新版本!</button>`;
+          showToast(`发现新版本: v${data.latest}`);
+        } else {
+          document.getElementById('update-status').innerHTML = 
+            `<span style="color: var(--success);">✓ 已是最新</span>`;
+        }
+      } catch(e) {
+        showToast('检查更新失败: ' + e.message);
+      }
+    }
+    
+    // 加载资源
+    async function loadResources() {
+      try {
+        const res = await fetch('/api/resources');
+        const data = await res.json();
+        
+        // 显示内置资源
+        const envContainer = document.getElementById('builtin-environments');
+        if (envContainer && data.builtIn?.environments) {
+          envContainer.innerHTML = data.builtIn.environments.map(e => 
+            `<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">${e.name}</span>`
+          ).join('');
+        }
+        
+        const effectContainer = document.getElementById('builtin-effects');
+        if (effectContainer && data.builtIn?.effects) {
+          effectContainer.innerHTML = data.builtIn.effects.map(e => 
+            `<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">${e.name}</span>`
+          ).join('');
+        }
+      } catch(e) {
+        console.error(e);
+      }
+    }
+    
+    // 打开 GitHub
+    function openGitHub() {
+      window.open('https://github.com/MMXC/digital-wallpaper', '_blank');
+    }
+    
+    function openRelease() {
+      window.open('https://github.com/MMXC/digital-wallpaper/releases', '_blank');
+    }
+    
+    // 加载当前版本
+    async function loadVersion() {
+      try {
+        const res = await fetch('/api/version');
+        const data = await res.json();
+        document.getElementById('current-version').textContent = 'v' + data.version;
+      } catch(e) {}
     }
   </script>
 </body>
