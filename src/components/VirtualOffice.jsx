@@ -102,12 +102,14 @@ function useOpenClawStatus(onTaskUpdate) {
   const [loading, setLoading] = useState(true)
   
   const handleWsMessage = (data) => {
+    console.log('📨 WS收到消息:', data)
     if (data.type === 'connected') {
       console.log('✅ WebSocket 连接成功')
       return
     }
     
     if (data.type === 'agent_update' && data.agents) {
+      console.log('📋 更新Agent列表:', data.agents)
       setAgents(data.agents)
     }
     
