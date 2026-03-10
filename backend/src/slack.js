@@ -39,7 +39,7 @@ const config = {
   channelId: process.env.SLACK_CHANNEL_ID || 'C081L0VCKL4',
   pollingInterval: 3000,
   listenUsers: process.env.SLACK_LISTEN_USERS ? process.env.SLACK_LISTEN_USERS.split(',') : null,
-  ignoreBots: true,
+  ignoreBots: false,
   filterKeywords: null,  // 处理所有包含 action 的 JSON
 };
 
