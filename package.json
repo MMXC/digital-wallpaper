@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "electron": "electron .",
     "api": "node backend/src/index.js",
-    "start": "concurrently \"npm run api\" \"npm run dev\""
+    "start": "concurrently \"npm run api\" \"npm run dev\"",
+    "export": "node scripts/export.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
