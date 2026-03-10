@@ -15,6 +15,7 @@ import { createServer } from 'http';
 import { initSlackClient, onMessage, startPolling, stopPolling, simulateMessage, slackConfig } from './slack.js';
 import { getProtocols, generateHelpText, getConfigSchema } from './protocols.js';
 import { initWebSocketServer, broadcastToAgent, broadcast, getClientCount } from './websocket.js';
+import configStore from './config-store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -194,6 +195,41 @@ app.get('/api/config', (req, res) => {
     }
   };
   res.json(config);
+});
+
+// 配置更新 API（管理界面用）
+app.put('/api/config/environment', (req, res) => {
+  const { preset } = req.body;
+  const config = configStore.updateEnvironment(preset);
+  broadcast({ type: 'environment_update', data: config.environment });
+  res.json({ success: true, config });
+});
+
+app.put('/api/config/avatars', (req, res) => {
+  const { avatars } = req.body;
+  const config = configStore.updateAvatars(avatars);
+  broadcast({ type: 'avatars_update', data: config.avatars });
+  res.json({ success: true, config });
+});
+
+app.put('/api/config/tasks', (req, res) => {
+  const { tasks } = req.body;
+  const config = configStore.updateTasks(tasks);
+  broadcast({ type: 'tasks_update', data: config.tasks });
+  res.json({ success: true, config });
+});
+
+app.post('/api/config/effect', (req, res) => {
+  const { effect } = req.body;
+  const config = configStore.addEffect(effect);
+  broadcast({ type: 'effect_add', data: effect });
+  res.json({ success: true, config });
+});
+
+app.delete('/api/config/effects', (req, res) => {
+  const config = configStore.clearEffects();
+  broadcast({ type: 'effects_clear', data: {} });
+  res.json({ success: true, config });
 });
 
 // 模拟消息（测试用）

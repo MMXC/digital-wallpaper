@@ -1,11 +1,33 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Text, Html, Float, Environment } from '@react-three/drei'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // ============ 背景配置 ============
 const BACKGROUND_CONFIG = {
   mode: 'environment',
   environment: { preset: 'city' }
+}
+
+// ============ WebSocket 连接 ============
+function useWebSocket(onMessage) {
+  const wsRef = useRef(null)
+  
+  useEffect(() => {
+    const wsUrl = 'ws://localhost:3001'
+    const ws = new WebSocket(wsUrl)
+    wsRef.current = ws
+    
+    ws.onopen = () => console.log('🔌 WebSocket connected')
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        onMessage(data)
+      } catch (e) {}
+    }
+    ws.onclose = () => console.log('🔌 WebSocket disconnected')
+    
+    return () => ws.close()
+  }, [onMessage])
 }
 
 // ============ 默认数据 ============
@@ -149,6 +171,26 @@ export default function VirtualOffice() {
   const [agents, setAgents] = useState(DEFAULT_AGENTS)
   const [tasks, setTasks] = useState(DEFAULT_TASKS)
   const [loading, setLoading] = useState(true)
+  
+  // WebSocket 实时更新
+  const handleWebSocketMessage = (data) => {
+    if (data.type === 'environment_update') {
+      BACKGROUND_CONFIG.environment.preset = data.data.preset
+      setLoading(false) // 触发重渲染
+    }
+    if (data.type === 'avatars_update') {
+      setAgents(data.data)
+    }
+    if (data.type === 'tasks_update') {
+      setTasks(data.data)
+    }
+    if (data.type === 'effect_add') {
+      // 可以添加特效逻辑
+    }
+  }
+  
+  // 连接 WebSocket
+  useWebSocket(handleWebSocketMessage)
   
   // 轮询获取更新
   useEffect(() => {
