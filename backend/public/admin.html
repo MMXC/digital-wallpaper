@@ -676,7 +676,35 @@
         
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">基本设置</h3>
+            <h3 class="card-title">📡 消息渠道</h3>
+          </div>
+          <div class="form-group">
+            <label class="form-label">当前渠道</label>
+            <select class="form-select" id="setting-channel">
+              <option value="slack">Slack (默认)</option>
+              <option value="telegram" disabled>Telegram (暂未实现)</option>
+              <option value="discord" disabled>Discord (暂未实现)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Slack Channel ID</label>
+            <input type="text" class="form-input" id="setting-slack-channel" placeholder="C0AK3SLCJ6A">
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">👥 Agent 配置</h3>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Agent 列表 (JSON)</label>
+            <textarea class="form-input" id="setting-agents" rows="6" style="font-family: monospace; font-size: 12px;"></textarea>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">💬 消息队列</h3>
           </div>
           <div class="form-group">
             <label class="form-label">最大消息保留数</label>
@@ -719,6 +747,7 @@
       
       if (page === 'messages') refreshMessages();
       if (page === 'contracts') loadContracts();
+      if (page === 'settings') loadRuntimeConfig();
     }
     
     // Toast
@@ -789,13 +818,54 @@
     }
     
     // Settings
+    async function loadRuntimeConfig() {
+      try {
+        const res = await fetch('/api/config/runtime');
+        const data = await res.json();
+        
+        if (data.agents) {
+          document.getElementById('setting-agents').value = JSON.stringify(data.agents, null, 2);
+        }
+        if (data.slackChannel) {
+          document.getElementById('setting-slack-channel').value = data.slackChannel;
+        }
+      } catch(e) {
+        console.error(e);
+      }
+    }
+    
     async function saveSettings() {
+      // 保存运行时配置
+      const agentsStr = document.getElementById('setting-agents').value;
+      const slackChannel = document.getElementById('setting-slack-channel').value;
+      
+      try {
+        let agents = null;
+        if (agentsStr.trim()) {
+          agents = JSON.parse(agentsStr);
+        }
+        
+        await fetch('/api/config/runtime', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            agents,
+            slackChannel
+          })
+        });
+      } catch(e) {
+        showToast('Agent配置格式错误: ' + e.message);
+        return;
+      }
+      
+      // 保存消息队列设置
       const max = document.getElementById('setting-max-messages').value;
       await fetch('/api/messages/max', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ max: parseInt(max) })
       });
+      
       showToast('设置已保存');
     }
     

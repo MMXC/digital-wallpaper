@@ -232,6 +232,31 @@ app.delete('/api/config/effects', (req, res) => {
   res.json({ success: true, config });
 });
 
+// 获取/设置运行时配置（模拟环境变量）
+app.get('/api/config/runtime', (req, res) => {
+  res.json({
+    agents: dynamicAgents || parseJsonEnv('AGENT_LIST'),
+    avatars: parseJsonEnv('AGENT_AVATARS'),
+    names: parseJsonEnv('AGENT_NAMES'),
+    slackChannel: process.env.SLACK_CHANNEL_ID || '',
+    wsUrl: process.env.WS_URL || 'ws://localhost:3001'
+  });
+});
+
+app.put('/api/config/runtime', (req, res) => {
+  const { agents, avatars, names, slackChannel } = req.body;
+  
+  if (agents) dynamicAgents = agents;
+  if (avatars) process.env.AGENT_AVATARS = JSON.stringify(avatars);
+  if (names) process.env.AGENT_NAMES = JSON.stringify(names);
+  if (slackChannel) process.env.SLACK_CHANNEL_ID = slackChannel;
+  
+  // 广播更新
+  broadcast({ type: 'config_update', data: { agents, avatars, names } });
+  
+  res.json({ success: true });
+});
+
 // 模拟消息（测试用）
 app.post('/api/slack/simulate', (req, res) => {
   const { agent, action, data } = req.body;
