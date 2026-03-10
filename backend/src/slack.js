@@ -60,22 +60,25 @@ export function onMessage(callback) {
 function parseContract(text) {
   // 尝试解析 JSON
   try {
-    // 查找 JSON 块 (支持 ```json ``` 和裸 JSON)
-    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || 
-                     text.match(/```\n([\s\S]*?)\n```/) ||
-                     text.match(/\{[\s\S]*\}/);
+    // 清理文本：移除代码块标记
+    let cleanText = text
+      .replace(/```json?\n?/g, '')
+      .replace(/```/g, '')
+      .trim();
+    
+    // 查找 JSON 块
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     
     if (jsonMatch) {
-      const jsonStr = jsonMatch[1] || jsonMatch[0];
-      const data = JSON.parse(jsonStr);
+      const data = JSON.parse(jsonMatch[0]);
       
-      // 验证必需字段 (支持多种格式)
+      // 验证必需字段
       if (data.action) {
         return {
           valid: true,
-          agent: data.agent || null,  // 可选
+          agent: data.agent || null,
           action: data.action,
-          data: data.data || {},      // 支持 data 字段或直接平铺
+          data: data.data || {},
           raw: text
         };
       }
