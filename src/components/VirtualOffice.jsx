@@ -165,6 +165,14 @@ export default function VirtualOffice() {
           if (config.agents) {
             setAgents(config.agents)
           }
+          if (config.background) {
+            if (config.background.preset) {
+              BACKGROUND_CONFIG.environment.preset = config.background.preset
+            }
+            if (config.background.mode) {
+              BACKGROUND_CONFIG.mode = config.background.mode
+            }
+          }
         }
       } catch (e) {
         // 忽略连接错误

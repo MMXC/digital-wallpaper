@@ -125,12 +125,16 @@ app.get('/api/slack/status', (req, res) => {
 
 // 前端配置（Agent列表、头像、名称等）
 app.get('/api/config', (req, res) => {
+  // 优先使用动态数据，否则用环境变量
+  const agents = (dynamicAgents && dynamicAgents.length > 0) ? dynamicAgents : (parseJsonEnv('AGENT_LIST') || null);
+  const tasks = (dynamicTasks && dynamicTasks.length > 0) ? dynamicTasks : null;
+  
   const config = {
     // WebSocket 地址
     wsUrl: process.env.WS_URL || 'ws://localhost:3001',
     
-    // Agent 列表（从环境变量或默认）
-    agents: parseJsonEnv('AGENT_LIST'),
+    // Agent 列表（优先动态）
+    agents: agents,
     
     // Agent 头像映射
     avatars: parseJsonEnv('AGENT_AVATARS') || {},
@@ -138,11 +142,11 @@ app.get('/api/config', (req, res) => {
     // Agent 名称映射
     names: parseJsonEnv('AGENT_NAMES') || {},
     
-    // 任务列表
-    tasks: dynamicTasks,
+    // 任务列表（优先动态）
+    tasks: tasks,
     
-    // 背景配置
-    background: {
+    // 背景配置（优先动态）
+    background: dynamicBackground || {
       mode: process.env.BACKGROUND_MODE || 'environment',
       preset: process.env.BACKGROUND_PRESET || 'city',
       color: process.env.BACKGROUND_COLOR || '#0f172a',
@@ -183,6 +187,9 @@ let dynamicTasks = [
   { id: 4, title: '文档整理', agent: '礼部', status: 'pending', priority: 'low' },
 ];
 
+// 动态背景配置
+let dynamicBackground = null;
+
 // 契约处理函数
 const handleContract = (contract, msg) => {
   console.log('📨 收到 Slack 契约:', contract.action);
@@ -222,6 +229,10 @@ const handleContract = (contract, msg) => {
       }
       break;
     case 'background_update':
+      if (contract.data) {
+        dynamicBackground = contract.data;
+        console.log(`✅ 背景更新: ${contract.data.preset || contract.data.mode}`);
+      }
       broadcast({ type: 'background_update', data: contract.data });
       break;
     case 'effect_update':
