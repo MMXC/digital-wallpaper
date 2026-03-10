@@ -37,7 +37,7 @@ echo 📦 安装依赖 & 构建...
 echo.
 
 REM 安装 backend 依赖
-echo [1/4] 安装 Backend 依赖...
+echo [1/3] 安装 Backend 依赖...
 cd /d "%~dp0backend"
 call npm install
 if %errorlevel% neq 0 (
@@ -49,7 +49,7 @@ echo ✅ Backend 依赖安装完成
 echo.
 
 REM 构建前端
-echo [2/4] 构建 Frontend...
+echo [2/3] 构建 Frontend...
 cd /d "%~dp0"
 call npm run build
 if %errorlevel% neq 0 (
@@ -60,19 +60,15 @@ if %errorlevel% neq 0 (
 echo ✅ Frontend 构建完成
 echo.
 
-REM 复制构建结果到 wallpaper-frontend
-echo [3/4] 复制静态文件...
-xcopy /E /Y /Q "%~dp0dist\*" "%~dp0wallpaper-frontend\static\"
+REM 提交构建结果（仅首次或更新时）
+echo [3/3] 检查更新...
+cd /d "%~dp0"
+git add wallpaper-frontend/static/
+git diff --cached --quiet
 if %errorlevel% neq 0 (
-    echo ❌ 复制静态文件失败
-    pause
-    exit /b 1
+    echo 📦 发现静态文件更新，正在提交...
+    git commit -m "chore: 更新前端静态文件" || echo 已提交或无需更新
 )
-echo ✅ 静态文件复制完成
-echo.
-
-REM 检查 Slack 配置
-echo [4/4] 检查 Slack 配置...
 cd /d "%~dp0backend"
 if not exist ".env" (
     echo ⚠️ 未找到 .env 配置文件
