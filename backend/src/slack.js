@@ -78,16 +78,19 @@ export function onMessage(callback) {
 function parseContract(text) {
   // 尝试解析 JSON
   try {
-    // 清理文本：移除代码块标记
+    // 清理文本：移除代码块标记和其他markdown
     let cleanText = text
       .replace(/```json?\n?/g, '')
       .replace(/```/g, '')
+      .replace(/\*\*[^*]+\*\*/g, '')  // 移除 **bold**
+      .replace(/\*[^*]+\*/g, '')       // 移除 *italic*
       .trim();
     
-    // 查找 JSON 块
+    // 查找 JSON 对象（从 { 到 }）
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     
     if (jsonMatch) {
+      console.log('🔍 解析到的JSON:', jsonMatch[0].substring(0, 100));
       const data = JSON.parse(jsonMatch[0]);
       
       // 验证必需字段
@@ -102,7 +105,7 @@ function parseContract(text) {
       }
     }
   } catch (e) {
-    console.log('JSON 解析失败:', e.message);
+    // 静默处理解析错误
   }
   
   return { valid: false };

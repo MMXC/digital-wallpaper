@@ -32,20 +32,16 @@ app.use(express.json());
 function getConfiguredAgents() {
   // 优先使用动态 Agent 列表（从 Slack 消息获取）
   if (dynamicAgents && Array.isArray(dynamicAgents) && dynamicAgents.length > 0) {
-    console.log(`✅ 使用动态 Agent 列表 (${dynamicAgents.length} 个)`);
     return dynamicAgents;
   }
   
   if (process.env.AGENT_LIST) {
     try {
-      console.log('AGENT_LIST 原始值:', process.env.AGENT_LIST);
-      // 处理各种格式问题
       let jsonStr = process.env.AGENT_LIST
-        .replace(/^["']|["']$/g, '')  // 去除首尾引号
-        .replace(/[\r\n]+/g, '')       // 去除换行
-        .replace(/\\"/g, '"')         // 处理转义引号
+        .replace(/^["']|["']$/g, '')
+        .replace(/[\r\n]+/g, '')
+        .replace(/\\"/g, '"')
         .trim();
-      console.log('AGENT_LIST 处理后:', jsonStr);
       return JSON.parse(jsonStr);
     } catch (e) {
       console.error('AGENT_LIST 解析失败:', e.message);
