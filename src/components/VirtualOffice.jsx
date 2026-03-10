@@ -17,6 +17,25 @@ const BACKGROUND_CONFIG = {
   }
 }
 
+// ============ Agent 配置 ============
+const AGENT_CONFIG = {
+  // 自定义 Agent 列表（null = 自动从 OpenClaw 获取）
+  customAgents: null,
+  
+  // Agent 头像映射（key 为 agent id 或 label）
+  avatars: {
+    // 'taizi': '/avatars/taizi.png',
+  },
+  
+  // 默认头像
+  defaultAvatar: null,
+  
+  // Agent 名称映射
+  names: {
+    // 'taizi': '太子',
+  }
+}
+
 // ============ WebSocket 连接 Hook ============
 function useWebSocket(onMessage) {
   const wsRef = useRef(null)
@@ -108,6 +127,13 @@ function useOpenClawStatus() {
   const { connected } = useWebSocket(handleWsMessage)
   
   useEffect(() => {
+    // 如果配置了自定义 Agent 列表，直接使用
+    if (AGENT_CONFIG.customAgents && Array.isArray(AGENT_CONFIG.customAgents)) {
+      setAgents(AGENT_CONFIG.customAgents)
+      setLoading(false)
+      return
+    }
+    
     // 默认虚拟办公场景的 Agent 列表
     const defaultAgents = [
       { id: 'taizi', name: '太子', role: '项目总控', status: 'idle', currentTask: '监控全局', color: '#8b5cf6' },
@@ -182,6 +208,9 @@ function AgentAvatar({ agent, position, onClick, isSelected }) {
   const color = agent.color || statusColors[agent.status] || '#4ade80'
   const glowColor = statusColors[agent.status] || statusColors.idle
   
+  // 获取自定义头像
+  const avatarUrl = AGENT_CONFIG.avatars[agent.id] || AGENT_CONFIG.avatars[agent.label] || AGENT_CONFIG.defaultAvatar
+  
   // 浮动动画
   const floatY = Math.sin(Date.now() / 1000 + position[0]) * 0.05
   
@@ -202,15 +231,31 @@ function AgentAvatar({ agent, position, onClick, isSelected }) {
         />
       </mesh>
       
-      {/* 头部 - 球体 */}
-      <mesh position={[0, 0.55, 0]} castShadow>
-        <sphereGeometry args={[0.25, 32, 32]} />
-        <meshStandardMaterial 
-          color={color}
-          metalness={0.5}
-          roughness={0.3}
-        />
-      </mesh>
+      {/* 头部 - 球体 或 自定义头像 */}
+      {avatarUrl ? (
+        <Html position={[0, 0.55, 0]} center distanceFactor={3}>
+          <img 
+            src={avatarUrl} 
+            alt={agent.label}
+            style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              border: `3px solid ${color}`,
+              objectFit: 'cover',
+            }}
+          />
+        </Html>
+      ) : (
+        <mesh position={[0, 0.55, 0]} castShadow>
+          <sphereGeometry args={[0.25, 32, 32]} />
+          <meshStandardMaterial 
+            color={color}
+            metalness={0.5}
+            roughness={0.3}
+          />
+        </mesh>
+      )}
       
       {/* 状态光环 */}
       <mesh position={[0, 0.3, 0]}>
@@ -248,7 +293,9 @@ function AgentAvatar({ agent, position, onClick, isSelected }) {
             transition: 'all 0.2s ease',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}>
-            <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{agent.name}</div>
+            <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+              {AGENT_CONFIG.names[agent.id] || AGENT_CONFIG.names[agent.label] || agent.name || agent.label}
+            </div>
             <div style={{ fontSize: '10px', opacity: 0.85, marginTop: '2px' }}>{agent.role}</div>
           </div>
         </Html>
