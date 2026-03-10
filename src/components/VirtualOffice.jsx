@@ -126,9 +126,11 @@ function usePolling(onTaskUpdate) {
   // 也保留轮询作为备用
   const fetchUpdates = useCallback(async () => {
     try {
+      console.log('🔄 开始轮询获取...')
       const res = await fetch('http://localhost:3001/api/config')
       if (res.ok) {
         const config = await res.json()
+        console.log('📡 获取到配置:', JSON.stringify(config).substring(0, 200))
         if (config.tasks && config.tasks.length > 0) {
           console.log('📋 轮询获取任务:', config.tasks)
           setTasks(config.tasks)
@@ -136,11 +138,12 @@ function usePolling(onTaskUpdate) {
           onTaskUpdate?.(config.tasks)
         }
         if (config.agents) {
+          console.log('📋 轮询获取Agent:', config.agents)
           setAgents(config.agents)
         }
       }
     } catch (e) {
-      console.log('轮询:', e.message)
+      console.log('轮询失败:', e.message)
     }
   }, [onTaskUpdate])
   
