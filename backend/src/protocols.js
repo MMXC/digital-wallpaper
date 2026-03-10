@@ -24,6 +24,13 @@ export function getConfigSchema() {
 }
 
 /**
+ * 格式化JSON
+ */
+function formatJson(obj) {
+  return JSON.stringify(obj, null, 2);
+}
+
+/**
  * 生成帮助文本
  */
 export function generateHelpText() {
@@ -62,28 +69,28 @@ export function generateHelpText() {
   
   lines.push('*更新数字人：*');
   lines.push('```json');
-  lines.push(JSON.stringify({
+  lines.push(formatJson({
     action: 'agent_list_update',
     data: { avatars: [{ id: 'taizi', name: '太子', status: 'idle' }] }
-  }, null, 2));
+  }));
   lines.push('```');
   
   lines.push('');
   lines.push('*更新天空盒：*');
   lines.push('```json');
-  lines.push(JSON.stringify({
+  lines.push(formatJson({
     action: 'environment_update',
     data: { environment: { preset: 'sunset' } }
-  }, null, 2));
+  }));
   lines.push('```');
   
   lines.push('');
   lines.push('*相机动画：*');
   lines.push('```json');
-  lines.push(JSON.stringify({
+  lines.push(formatJson({
     action: 'camera_update',
-    data: { camera: { position: { x: 5, y: 10, z: 5 }, target: { x: 0, y: 0, z: 0 } }
-  }, null, 2));
+    data: { camera: { position: { x: 5, y: 10, z: 5 }, target: { x: 0, y: 0, z: 0 } } }
+  }));
   lines.push('```');
   
   lines.push('');
