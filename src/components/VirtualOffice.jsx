@@ -37,16 +37,11 @@ const AGENT_CONFIG = {
 }
 
 // ============ WebSocket 连接 Hook ============
-const WS_CONFIG = {
-  url: 'ws://localhost:3001',  // 可配置 WebSocket 地址
-}
-
 function useWebSocket(onMessage) {
   const wsRef = useRef(null)
   const [connected, setConnected] = useState(false)
   
   useEffect(() => {
-    // 使用配置的 WebSocket 地址
     const wsUrl = WS_CONFIG.url
     let ws = null
     let reconnectTimer = null
@@ -65,10 +60,7 @@ function useWebSocket(onMessage) {
           try {
             const data = JSON.parse(event.data)
             console.log('📨 收到 WebSocket 消息:', data)
-            
-            if (onMessage) {
-              onMessage(data)
-            }
+            if (onMessage) onMessage(data)
           } catch (e) {
             console.error('消息解析失败:', e)
           }
@@ -77,7 +69,6 @@ function useWebSocket(onMessage) {
         ws.onclose = () => {
           console.log('🔌 WebSocket 已断开')
           setConnected(false)
-          // 3秒后重连
           reconnectTimer = setTimeout(connect, 3000)
         }
         
@@ -98,6 +89,69 @@ function useWebSocket(onMessage) {
   }, [])
   
   return { connected, ws: wsRef.current }
+}
+
+// ============ 使用轮询或WebSocket获取更新 ============
+function usePolling(onTaskUpdate) {
+  const [agents, setAgents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [wsConnected, setWsConnected] = useState(false)
+  
+  // WebSocket 消息处理
+  const handleWsMessage = useCallback((data) => {
+    console.log('📨 WS收到消息:', data)
+    if (data.type === 'connected') {
+      console.log('✅ WebSocket 连接成功')
+      return
+    }
+    if (data.type === 'agent_update' && data.agents) {
+      console.log('📋 更新Agent列表:', data.agents)
+      setAgents(data.agents)
+    }
+    if (data.type === 'task_update' && data.tasks) {
+      console.log('📋 收到任务更新:', data.tasks)
+      TASK_BOARD_CONFIG.tasks = data.tasks
+      onTaskUpdate?.(data.tasks)
+    }
+  }, [onTaskUpdate])
+  
+  // 使用 WebSocket
+  const { connected } = useWebSocket(handleWsMessage)
+  
+  useEffect(() => {
+    setWsConnected(connected)
+  }, [connected])
+  
+  // 也保留轮询作为备用
+  const fetchUpdates = useCallback(async () => {
+    try {
+      const res = await fetch('http://localhost:3001/api/config')
+      if (res.ok) {
+        const config = await res.json()
+        if (config.tasks && config.tasks.length > 0) {
+          console.log('📋 轮询获取任务:', config.tasks)
+          TASK_BOARD_CONFIG.tasks = config.tasks
+          onTaskUpdate?.(config.tasks)
+        }
+        if (config.agents && !connected) {
+          setAgents(config.agents)
+        }
+      }
+    } catch (e) {
+      console.log('轮询:', e.message)
+    }
+  }, [onTaskUpdate, connected])
+  
+  useEffect(() => {
+    fetchUpdates()
+    // 如果没连WS，每3秒轮询一次
+    if (!connected) {
+      const interval = setInterval(fetchUpdates, 3000)
+      return () => clearInterval(interval)
+    }
+  }, [fetchUpdates, connected])
+  
+  return { agents, loading, wsConnected }
 }
 
 // ============ OpenClaw 状态获取 Hook ============
@@ -124,8 +178,8 @@ function useOpenClawStatus(onTaskUpdate) {
     }
   }
   
-  // 使用 WebSocket
-  const { connected } = useWebSocket(handleWsMessage)
+  // 使用轮询获取更新
+  const { connected } = usePolling(handleWsMessage)
   
   // 从后端获取配置（优先）或本地 config.json
   useEffect(() => {
