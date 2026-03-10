@@ -3,53 +3,24 @@
  * 从 Slack 频道获取消息并解析 JSON 契约
  */
 
+import 'dotenv/config';
 import { WebClient } from '@slack/web-api';
 
 // Slack 客户端
 let slackClient = null;
 
 // 配置
-// 确保 dotenv 已加载
-import 'dotenv/config';
-
 const config = {
   token: process.env.SLACK_BOT_TOKEN || '',
-  channelId: process.env.SLACK_CHANNEL_ID || 'C081L0VCKL4', // 默认频道
-  pollingInterval: 3000, // 3秒轮询
-  
-  // 监听配置
-  listenUsers: process.env.SLACK_LISTEN_USERS ? process.env.SLACK_LISTEN_USERS.split(',') : null,  // 只监听指定用户，null=监听全部
-  ignoreBots: true,  // 忽略机器人消息
-  
-  /**
- * Slack 消息契约协议设计
- * 
- * 支持的命令格式:
- * 
- * 1. agent_list_update - 更新 Agent 列表
- * {"action": "agent_list_update", "data": {"agents": [...]}}
- * 
- * 2. status_update - 更新单个 Agent 状态
- * {"action": "status_update", "agent": "taizi", "data": {"status": "busy", "currentTask": "处理中"}}
- * 
- * 3. broadcast - 广播消息给所有 Agent
- * {"action": "broadcast", "data": {"message": "hello"}}
- * 
- * 4. avatar_action - Avatar 动作/表情
- * {"action": "avatar_action", "agent": "taizi", "data": {"action": "dance", "emotion": "happy"}}
- * 
- * 5. background_update - 更新背景
- * {"action": "background_update", "data": {"mode": "environment", "preset": "city"}}
- * {"action": "background_update", "data": {"mode": "static", "color": "#000000"}}
- * {"action": "background_update", "data": {"mode": "video", "url": "https://..."}}
- * 
- * 6. effect_update - 特效
- * {"action": "effect_update", "data": {"effect": "confetti", "duration": 3000}}
- */
+  channelId: process.env.SLACK_CHANNEL_ID || 'C081L0VCKL4',
+  pollingInterval: 3000,
+  listenUsers: process.env.SLACK_LISTEN_USERS ? process.env.SLACK_LISTEN_USERS.split(',') : null,
+  ignoreBots: true,
+  filterKeywords: ['任务', 'agent', 'status', '状态', 'update', 'list'],
+};
 
 // 忽略的动作类型（这些是 avatar 动作，不是系统命令）
 const IGNORE_ACTIONS = ['dance', 'wave', 'greet', 'jump', 'spin'];
-};
 
 let pollingTimer = null;
 let lastTimestamp = null;
