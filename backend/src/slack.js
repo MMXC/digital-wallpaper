@@ -1,6 +1,30 @@
 /**
- * Slack 消息监听模块
- * 从 Slack 频道获取消息并解析 JSON 契约
+ * Slack 消息契约协议
+ * 
+ * 支持的命令格式:
+ * 
+ * 1. agent_list_update - 更新 Agent 列表
+ * {"action": "agent_list_update", "data": {"agents": [...]}}
+ * 
+ * 2. task_list_update - 更新任务面板
+ * {"action": "task_list_update", "data": {"tasks": [{"id":1,"title":"任务","agent":"尚书省","status":"in-progress","priority":"high"}]}}
+ * 
+ * 3. status_update - 更新单个 Agent 状态
+ * {"action": "status_update", "agent": "taizi", "data": {"status": "busy", "currentTask": "处理中"}}
+ * 
+ * 4. broadcast - 广播消息给所有 Agent
+ * {"action": "broadcast", "data": {"message": "hello"}}
+ * 
+ * 5. avatar_action - Avatar 动作/表情
+ * {"action": "avatar_action", "agent": "taizi", "data": {"action": "dance", "emotion": "happy"}}
+ * 
+ * 6. background_update - 更新背景
+ * {"action": "background_update", "data": {"mode": "environment", "preset": "city"}}
+ * {"action": "background_update", "data": {"mode": "static", "color": "#000000"}}
+ * {"action": "background_update", "data": {"mode": "video", "url": "https://..."}}
+ * 
+ * 7. effect_update - 特效
+ * {"action": "effect_update", "data": {"effect": "confetti", "duration": 3000}}
  */
 
 import 'dotenv/config';
