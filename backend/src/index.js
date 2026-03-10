@@ -139,6 +139,9 @@ app.get('/api/config', (req, res) => {
     // Agent 名称映射
     names: parseJsonEnv('AGENT_NAMES') || {},
     
+    // 任务列表
+    tasks: dynamicTasks,
+    
     // 背景配置
     background: {
       mode: process.env.BACKGROUND_MODE || 'environment',
@@ -173,6 +176,14 @@ initWebSocketServer(server);
 // 动态 Agent 列表存储
 let dynamicAgents = null;
 
+// 动态任务列表
+let dynamicTasks = [
+  { id: 1, title: '调研技术方案', agent: '中书省', status: 'completed', priority: 'high' },
+  { id: 2, title: '原型开发', agent: '尚书省', status: 'in-progress', priority: 'high' },
+  { id: 3, title: '测试验证', agent: '门下省', status: 'pending', priority: 'medium' },
+  { id: 4, title: '文档整理', agent: '礼部', status: 'pending', priority: 'low' },
+];
+
 // 契约处理函数
 const handleContract = (contract, msg) => {
   console.log('📨 收到 Slack 契约:', contract.action);
@@ -185,6 +196,16 @@ const handleContract = (contract, msg) => {
         broadcast({ type: 'agent_update', agents: dynamicAgents });
       }
       break;
+      
+    case 'task_list_update':
+      // 更新任务列表
+      if (contract.data && contract.data.tasks) {
+        dynamicTasks = contract.data.tasks;
+        console.log(`✅ 任务列表已更新: ${dynamicTasks.length} 个`);
+        broadcast({ type: 'task_update', tasks: dynamicTasks });
+      }
+      break;
+      
     case 'status_update':
       if (contract.agent) {
         broadcastToAgent(contract.agent, { action: 'status_update', data: contract.data });
@@ -209,6 +230,8 @@ const handleContract = (contract, msg) => {
       break;
   }
 };
+
+// 前端配置（Agent列表、头像、名称等）
 
 // 初始化 Slack 客户端并设置消息处理
 initSlackClient(process.env.SLACK_BOT_TOKEN);

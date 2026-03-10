@@ -142,6 +142,7 @@ function useOpenClawStatus() {
           if (config.background.color) BACKGROUND_CONFIG.static.color = config.background.color
         }
         if (config.agents) AGENT_CONFIG.customAgents = config.agents
+        if (config.tasks) TASK_BOARD_CONFIG.tasks = config.tasks
       })
       .catch(() => {})
   }, [])
@@ -570,18 +571,14 @@ const TASK_BOARD_CONFIG = {
   enabled: true,  // 是否显示任务看板
   position: 'top-right',  // 位置: 'top-right', 'top-left', 'bottom-right', 'bottom-left'
   
-  // 任务列表（可从后端获取）
-  tasks: [
-    { id: 1, title: '调研技术方案', agent: '中书省', status: 'completed', priority: 'high' },
-    { id: 2, title: '原型开发', agent: '尚书省', status: 'in-progress', priority: 'high' },
-    { id: 3, title: '测试验证', agent: '门下省', status: 'pending', priority: 'medium' },
-    { id: 4, title: '文档整理', agent: '礼部', status: 'pending', priority: 'low' },
-  ]
+  // 默认任务（会被后端数据覆盖）
+  tasks: []
 }
 
 // ============ 任务看板组件 ============
-function TaskBoard({ onTaskClick, selectedAgent }) {
-  const { tasks } = TASK_BOARD_CONFIG
+function TaskBoard({ onTaskClick, selectedAgent, tasks = [] }) {
+  // 使用传入的任务或默认
+  const taskList = tasks.length > 0 ? tasks : TASK_BOARD_CONFIG.tasks
   
   const getStatusColor = (status) => {
     switch (status) {
