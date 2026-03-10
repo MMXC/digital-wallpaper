@@ -5,6 +5,39 @@
 const GITHUB_REPO = 'MMXC/digital-wallpaper';
 const CURRENT_VERSION = '0.1.0';
 
+let broadcast = null;
+
+/**
+ * 设置广播函数
+ */
+export function setBroadcast(fn) {
+  broadcast = fn;
+}
+
+/**
+ * 启动时自动检查更新
+ */
+export async function autoCheckUpdate() {
+  const result = await checkForUpdates();
+  
+  if (result.needsUpdate && broadcast) {
+    broadcast({
+      type: 'update_available',
+      data: {
+        current: result.current,
+        latest: result.latest,
+        releaseUrl: result.releaseUrl,
+        downloadUrl: result.downloadUrl
+      }
+    });
+    console.log(`🔄 发现新版本: v${result.latest} (当前: v${result.current})`);
+  } else {
+    console.log(`✅ 已是最新版本: v${CURRENT_VERSION}`);
+  }
+  
+  return result;
+}
+
 /**
  * 获取最新 release 信息
  */

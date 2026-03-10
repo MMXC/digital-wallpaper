@@ -187,6 +187,13 @@ export default function VirtualOffice() {
     if (data.type === 'effect_add') {
       // 可以添加特效逻辑
     }
+    // 更新通知
+    if (data.type === 'update_available') {
+      const update = data.data;
+      // 存储更新信息，在UI中显示通知
+      window.pendingUpdate = update;
+      setLoading(false); // 触发UI更新显示通知
+    }
   }
   
   // 连接 WebSocket
@@ -234,6 +241,43 @@ export default function VirtualOffice() {
   
   return (
     <div style={{ width: '100%', height: '100vh', background: '#000', overflow: 'hidden' }}>
+      {/* 更新通知 */}
+      {typeof window !== 'undefined' && window.pendingUpdate && (
+        <div style={{
+          position: 'absolute',
+          top: '60px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '12px',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)'
+        }}>
+          <span>🔄 发现新版本 v{window.pendingUpdate.latest}</span>
+          <a 
+            href={window.pendingUpdate.releaseUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              background: 'white', 
+              color: '#6366f1', 
+              padding: '4px 12px', 
+              borderRadius: '6px',
+              textDecoration: 'none',
+              fontSize: '12px',
+              fontWeight: 'bold'
+            }}
+          >
+            查看更新
+          </a>
+        </div>
+      )}
+      
       <Canvas shadows camera={{ position: [0, 6, 10], fov: 50 }}>
         <OfficeScene agents={agents} />
       </Canvas>

@@ -16,7 +16,7 @@ import { initSlackClient, onMessage, startPolling, stopPolling, simulateMessage,
 import { getProtocols, generateHelpText, getConfigSchema } from './protocols.js';
 import { initWebSocketServer, broadcastToAgent, broadcast, getClientCount } from './websocket.js';
 import configStore from './config-store.js';
-import { checkForUpdates, getResources, CURRENT_VERSION } from './updater.js';
+import { checkForUpdates, getResources, CURRENT_VERSION, autoCheckUpdate, setBroadcast } from './updater.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -381,6 +381,10 @@ server.listen(PORT, () => {
   console.log(`🏛️ 数字人壁纸 API 服务已启动: http://localhost:${PORT}`);
   console.log(`📋 API 端点: http://localhost:${PORT}/api/agents`);
   console.log(`🔌 WebSocket 端点: ws://localhost:${PORT}`);
+  
+  // 设置广播函数并自动检查更新
+  setBroadcast(broadcast);
+  autoCheckUpdate();
 });
 
 // 优雅关闭
