@@ -1,6 +1,6 @@
 /**
  * 数字人壁纸 - Agent 状态 API 服务
- * 从 OpenClaw Gateway 获取 Agent 状态并提供给前端
+ * 通过 Slack 消息获取 Agent 状态
  * 端口: 3001
  */
 
@@ -9,7 +9,6 @@ import express from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { spawn } from 'child_process';
 import { createServer } from 'http';
 
 // 导入 Slack 和 WebSocket 模块
@@ -27,166 +26,18 @@ app.use(express.json());
 
 // ============ OpenClaw 状态获取 ============
 
-// 运行 openclaw agents list 命令
-function getOpenClawAgents() {
-  return new Promise((resolve) => {
-    const proc = spawn('openclaw', ['agents', 'list'], {
-      shell: true,
-      env: { ...process.env }
-    });
-    
-    let output = '';
-    let errorOutput = '';
-    
-    proc.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-    
-    proc.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
-    
-    proc.on('close', (code) => {
-      if (code !== 0) {
-        console.error('OpenClaw CLI error:', errorOutput);
-        resolve(null);
-        return;
-      }
-      
-      // 解析输出
-      try {
-        const agents = parseAgentsList(output);
-        resolve(agents);
-      } catch (e) {
-        console.error('Parse error:', e);
-        resolve(null);
-      }
-    });
-    
-    proc.on('error', (err) => {
-      console.error('Spawn error:', err);
-      resolve(null);
-    });
-  });
-}
+// ============ Agent 配置（不再直连 OpenClaw）============
 
-// 解析 openclaw agents list 输出
-function parseAgentsList(output) {
-  const agents = [];
-  const lines = output.split('\n');
-  
-  let currentAgent = null;
-  
-  for (const line of lines) {
-    // 检测 Agent 名称 (如 "taizi (default)")
-    const nameMatch = line.match(/^-\s+(\w+)/);
-    if (nameMatch) {
-      if (currentAgent) {
-        agents.push(currentAgent);
-      }
-      currentAgent = {
-        id: nameMatch[1],
-        name: nameMatch[1],
-        status: 'idle',  // 默认状态
-        currentTask: '待命中',
-        color: getAgentColor(nameMatch[1]),
-      };
-      
-      // 检查是否是 default
-      if (line.includes('(default)')) {
-        currentAgent.isDefault = true;
-      }
-    }
-    
-    // 检测 Identity
-    if (currentAgent && line.includes('Identity:')) {
-      const identityMatch = line.match(/Identity:\s+(.+)/);
-      if (identityMatch) {
-        currentAgent.identity = identityMatch[1].trim();
-      }
-    }
-    
-    // 检测 Workspace
-    if (currentAgent && line.includes('Workspace:')) {
-      const wsMatch = line.match(/Workspace:\s+(.+)/);
-      if (wsMatch) {
-        currentAgent.workspace = wsMatch[1].trim();
-      }
+// 从环境变量获取 Agent 列表
+function getConfiguredAgents() {
+  if (process.env.AGENT_LIST) {
+    try {
+      return JSON.parse(process.env.AGENT_LIST);
+    } catch (e) {
+      console.error('AGENT_LIST 解析失败:', e);
     }
   }
-  
-  if (currentAgent) {
-    agents.push(currentAgent);
-  }
-  
-  return agents;
-}
-
-// 根据 Agent 名称获取颜色
-function getAgentColor(agentId) {
-  const colors = {
-    'taizi': '#8b5cf6',     // 紫色
-    'zhongshu': '#3b82f6',  // 蓝色
-    'menxia': '#10b981',    // 绿色
-    'shangshu': '#f59e0b',  // 橙色
-    'bingbu': '#ef4444',    // 红色
-    'gongbu': '#6366f1',    // 靛蓝
-    'hubu': '#14b8a6',      // 青色
-    'libu': '#f97316',      // 橙黄
-    'xingbu': '#84cc16',    // 草绿
-  };
-  return colors[agentId] || '#6b7280';
-}
-
-// 根据 Agent 名称获取角色
-function getAgentRole(agentId) {
-  const roles = {
-    'taizi': '项目总控',
-    'zhongshu': '规划决策',
-    'menxia': '审核审议',
-    'shangshu': '执行派发',
-    'bingbu': '战斗部署',
-    'gongbu': '工程建设',
-    'hubu': '财政资源',
-    'libu': '外交礼仪',
-    'xingbu': '司法审判',
-  };
-  return roles[agentId] || '未知职能';
-}
-
-// ============ 模拟状态更新 ============
-
-// 模拟任务状态（实际应从 OpenClaw Gateway 获取）
-function simulateTaskStatus(agents) {
-  // 基于时间和随机因素更新状态
-  const now = Date.now();
-  
-  return agents.map((agent, index) => {
-    // 伪随机状态生成
-    const seed = (now + index * 1000) % 10000;
-    let status = 'idle';
-    let currentTask = '待命中';
-    
-    if (seed < 2000) {
-      status = 'idle';
-      currentTask = '待命中';
-    } else if (seed < 7000) {
-      status = 'busy';
-      const tasks = ['处理审批', '执行任务', '分析数据', '撰写报告', '协调资源'];
-      currentTask = tasks[index % tasks.length];
-    } else {
-      status = 'blocked';
-      currentTask = '等待资源';
-    }
-    
-    return {
-      ...agent,
-      role: agent.role || getAgentRole(agent.id),
-      status,
-      currentTask,
-      lastUpdate: new Date().toISOString(),
-    };
-  });
+  return null;
 }
 
 // ============ API 路由 ============
@@ -196,14 +47,15 @@ app.get('/api/agents', async (req, res) => {
   try {
     console.log('📡 收到 Agent 状态请求');
     
-    const openClawAgents = await getOpenClawAgents();
+    // 从环境变量获取配置
+    const configuredAgents = getConfiguredAgents();
     
     let agents;
-    if (openClawAgents && openClawAgents.length > 0) {
-      agents = simulateTaskStatus(openClawAgents);
-      console.log(`✅ 从 OpenClaw 获取到 ${agents.length} 个 Agent`);
+    if (configuredAgents && Array.isArray(configuredAgents) && configuredAgents.length > 0) {
+      agents = configuredAgents;
+      console.log(`✅ 使用配置的 Agent 列表 (${agents.length} 个)`);
     } else {
-      // 使用默认虚拟办公场景的 Agent
+      // 使用默认虚拟办公场景 Agent
       agents = [
         { id: 'taizi', name: '太子', role: '项目总控', status: 'idle', currentTask: '监控全局', color: '#8b5cf6' },
         { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'idle', currentTask: '待命中', color: '#3b82f6' },
