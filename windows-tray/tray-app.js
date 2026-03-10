@@ -33,11 +33,18 @@ const CONFIG = {
   backendWsUrl: 'ws://localhost:18790'
 };
 
-// 创建默认托盘图标
+// 创建默认托盘图标 - 16x16 紫色方块
 function createDefaultIcon() {
-  // 使用 data URL 创建一个 16x16 紫色图标
-  const iconDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAKklEQVQ4T2NkoBAwUqifgWoGjBoASgAHBzYwYBQwjyoYNDQgKgzEuIEOAABs8wER8K7xHAAAAABJRU5ErkJggg==';
-  return nativeImage.createFromDataURL(iconDataUrl);
+  // 创建一个简单的 16x16 紫色图标
+  const size = 16;
+  const canvas = Buffer.alloc(size * size * 4);
+  for (let i = 0; i < size * size; i++) {
+    canvas[i * 4] = 128;     // R
+    canvas[i * 4 + 1] = 0;   // G  
+    canvas[i * 4 + 2] = 128; // B
+    canvas[i * 4 + 3] = 255; // A
+  }
+  return nativeImage.createFromBuffer(canvas, { width: size, height: size });
 }
 
 // ============ 创建主窗口 ============
@@ -45,7 +52,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: 'Digital Wallpaper - 数字壁纸',
+    title: 'Digital Wallpaper - Digital Avatar',
     icon: CONFIG.trayIconPath,
     webPreferences: {
       nodeIntegration: false,
@@ -54,7 +61,24 @@ function createWindow() {
     show: false
   });
 
-  mainWindow.loadURL(CONFIG.frontendUrl);
+  // 等待 frontend 准备好后再加载
+  const checkFrontend = () => {
+    const http = require('http');
+    const req = http.get(CONFIG.frontendUrl, (res) => {
+      if (res.statusCode === 200) {
+        mainWindow.loadURL(CONFIG.frontendUrl);
+        console.log('Frontend loaded');
+      } else {
+        setTimeout(checkFrontend, 1000);
+      }
+    });
+    req.on('error', () => {
+      setTimeout(checkFrontend, 1000);
+    });
+  };
+  
+  // 延迟检查，让 frontend 有时间启动
+  setTimeout(checkFrontend, 3000);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
