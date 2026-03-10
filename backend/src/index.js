@@ -134,6 +134,27 @@ app.get('/api/protocols/help', (req, res) => {
   res.type('text/plain').send(generateHelpText());
 });
 
+// 消息队列API
+import { getHistory, clearHistory, setMaxHistory, getStats } from './message-queue.js';
+
+app.get('/api/messages', (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  const messages = getHistory(limit);
+  const stats = getStats();
+  res.json({ messages, stats });
+});
+
+app.delete('/api/messages', (req, res) => {
+  clearHistory();
+  res.json({ success: true });
+});
+
+app.put('/api/messages/max', (req, res) => {
+  const max = parseInt(req.body.max) || 100;
+  setMaxHistory(max);
+  res.json({ success: true, max });
+});
+
 // Slack 状态
 app.get('/api/slack/status', (req, res) => {
   res.json({

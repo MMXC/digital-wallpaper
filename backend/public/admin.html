@@ -4,228 +4,685 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>数字人壁纸 - 管理中心</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a24;
+      --border-color: #2a2a3a;
+      --text-primary: #ffffff;
+      --text-secondary: #8b8b9e;
+      --accent-primary: #6366f1;
+      --accent-secondary: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.3);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --glass-bg: rgba(18, 18, 26, 0.8);
+    }
+    
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #fff; }
     
-    .header { background: linear-gradient(135deg, #1e293b, #0f172a); padding: 20px 30px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
-    .header h1 { font-size: 24px; background: linear-gradient(90deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .status { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
     
-    .container { display: flex; min-height: calc(100vh - 70px); }
-    .sidebar { width: 240px; background: #1e293b; padding: 20px; border-right: 1px solid #334155; }
-    .nav-item { padding: 12px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; transition: all 0.2s; }
-    .nav-item:hover { background: #334155; }
-    .nav-item.active { background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), transparent); border-left: 3px solid #8b5cf6; }
-    .nav-item span { margin-right: 10px; }
+    /* Background Pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
+        linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
     
-    .main { flex: 1; padding: 30px; overflow-y: auto; }
-    .section { display: none; }
-    .section.active { display: block; }
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
     
-    .card { background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #334155; }
-    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
-    .card-title .icon { font-size: 24px; }
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+    }
     
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-    .resource-card { background: #0f172a; border-radius: 12px; padding: 16px; border: 1px solid #334155; cursor: pointer; transition: all 0.2s; }
-    .resource-card:hover { border-color: #8b5cf6; transform: translateY(-2px); }
-    .resource-card.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
-    .resource-icon { font-size: 48px; margin-bottom: 12px; }
-    .resource-name { font-weight: 600; margin-bottom: 4px; }
-    .resource-desc { font-size: 12px; color: #94a3b8; }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      margin-bottom: 32px;
+    }
     
-    .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; }
-    .btn-primary { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4); }
-    .btn-secondary { background: #334155; color: white; }
-    .btn-danger { background: #dc2626; color: white; }
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
     
-    .form-group { margin-bottom: 16px; }
-    .form-label { display: block; margin-bottom: 8px; font-weight: 500; color: #94a3b8; }
-    .form-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 14px; }
-    .form-input:focus { outline: none; border-color: #8b5cf6; }
-    .form-select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 14px; }
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
     
-    .preview { background: #000; border-radius: 12px; height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; overflow: hidden; position: relative; }
-    .preview iframe { width: 100%; height: 100%; border: none; }
-    .preview-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 12px; border-radius: 4px; font-size: 12px; }
+    .nav-section {
+      margin-bottom: 24px;
+    }
     
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-    .tab { padding: 8px 16px; background: #1e293b; border-radius: 8px; cursor: pointer; border: 1px solid #334155; }
-    .tab.active { background: #8b5cf6; border-color: #8b5cf6; }
+    .nav-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0 12px;
+      margin-bottom: 8px;
+    }
     
-    .code-block { background: #0f172a; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; overflow-x: auto; white-space: pre; color: #a5b4fc; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
     
-    .toast { position: fixed; bottom: 30px; right: 30px; background: #1e293b; padding: 16px 24px; border-radius: 12px; border: 1px solid #334155; animation: slideIn 0.3s ease; }
-    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .nav-item:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
     
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: #1e293b; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
-    .stat-value { font-size: 32px; font-weight: bold; background: linear-gradient(90deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .stat-label { font-size: 14px; color: #94a3b8; margin-top: 8px; }
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), transparent);
+      color: var(--accent-secondary);
+      border-left: 3px solid var(--accent-primary);
+    }
+    
+    .nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+    }
+    
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+    
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    
+    .page-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    
+    .stat-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.3s;
+    }
+    
+    .stat-card:hover {
+      border-color: var(--accent-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+    }
+    
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+    
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
+    /* Cards */
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--border-color);
+    }
+    
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--error);
+      border: 1px solid var(--error);
+    }
+    
+    /* Message List */
+    .message-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .message-item {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    
+    .message-item:last-child {
+      border-bottom: none;
+    }
+    
+    .message-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    
+    .message-content {
+      flex: 1;
+      font-size: 13px;
+      word-break: break-all;
+    }
+    
+    .message-type {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--accent-glow);
+      color: var(--accent-secondary);
+    }
+    
+    /* Resource Grid */
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    
+    .resource-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    
+    .resource-card:hover {
+      border-color: var(--accent-primary);
+      transform: translateY(-2px);
+    }
+    
+    .resource-card.active {
+      border-color: var(--accent-primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+    
+    .resource-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+    
+    .resource-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .resource-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    /* Settings Form */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    
+    /* Preview */
+    .preview-container {
+      background: #000;
+      border-radius: 12px;
+      height: 400px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .preview-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    .preview-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.7);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      padding: 16px 24px;
+      border-radius: 12px;
+      animation: slideIn 0.3s ease;
+      z-index: 1000;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>🏛️ 数字人壁纸 - 管理中心</h1>
-    <div class="status">
-      <div class="status-dot"></div>
-      <span>服务运行中</span>
-    </div>
-  </div>
-  
-  <div class="container">
+  <div class="app-container">
+    <!-- Sidebar -->
     <div class="sidebar">
-      <div class="nav-item active" data-section="dashboard"><span>📊</span>仪表盘</div>
-      <div class="nav-item" data-section="preview"><span>🎬</span>实时预览</div>
-      <div class="nav-item" data-section="avatars"><span>👤</span>数字人</div>
-      <div class="nav-item" data-section="environments"><span>🌤️</span>天空盒</div>
-      <div class="nav-item" data-section="backgrounds"><span>🖼️</span>背景</div>
-      <div class="nav-item" data-section="effects"><span>✨</span>特效</div>
-      <div class="nav-item" data-section="contracts"><span>📜</span>契约协议</div>
-      <div class="nav-item" data-section="settings"><span>⚙️</span>设置</div>
+      <div class="logo">
+        <div class="logo-icon">🏛️</div>
+        <div class="logo-text">数字人壁纸</div>
+      </div>
+      
+      <div class="nav-section">
+        <div class="nav-label">概览</div>
+        <div class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">📊</span>
+          <span>仪表盘</span>
+        </div>
+        <div class="nav-item" data-page="preview">
+          <span class="nav-icon">🎬</span>
+          <span>实时预览</span>
+        </div>
+      </div>
+      
+      <div class="nav-section">
+        <div class="nav-label">资源</div>
+        <div class="nav-item" data-page="avatars">
+          <span class="nav-icon">👤</span>
+          <span>数字人</span>
+        </div>
+        <div class="nav-item" data-page="environments">
+          <span class="nav-icon">🌤️</span>
+          <span>天空盒</span>
+        </div>
+        <div class="nav-item" data-page="backgrounds">
+          <span class="nav-icon">🖼️</span>
+          <span>背景</span>
+        </div>
+        <div class="nav-item" data-page="effects">
+          <span class="nav-icon">✨</span>
+          <span>特效</span>
+        </div>
+      </div>
+      
+      <div class="nav-section">
+        <div class="nav-label">消息</div>
+        <div class="nav-item" data-page="messages">
+          <span class="nav-icon">📨</span>
+          <span>消息队列</span>
+        </div>
+        <div class="nav-item" data-page="contracts">
+          <span class="nav-icon">📜</span>
+          <span>契约协议</span>
+        </div>
+      </div>
+      
+      <div class="nav-section">
+        <div class="nav-label">系统</div>
+        <div class="nav-item" data-page="settings">
+          <span class="nav-icon">⚙️</span>
+          <span>设置</span>
+        </div>
+      </div>
     </div>
     
-    <div class="main">
-      <!-- 仪表盘 -->
-      <div class="section active" id="dashboard">
-        <div class="stats">
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Dashboard -->
+      <div class="page" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">仪表盘</h1>
+            <p class="page-subtitle">数字人壁纸运行状态总览</p>
+          </div>
+          <button class="btn btn-primary" onclick="refreshAll()">🔄 刷新数据</button>
+        </div>
+        
+        <div class="stats-grid">
           <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.2);">👤</div>
             <div class="stat-value" id="stat-avatars">4</div>
             <div class="stat-label">数字人</div>
           </div>
           <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2);">🌤️</div>
             <div class="stat-value" id="stat-environments">11</div>
             <div class="stat-label">天空盒</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value" id="stat-tasks">3</div>
-            <div class="stat-label">任务</div>
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">📨</div>
+            <div class="stat-value" id="stat-messages">0</div>
+            <div class="stat-label">消息队列</div>
           </div>
           <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.2);">✨</div>
             <div class="stat-value" id="stat-effects">5</div>
             <div class="stat-label">特效</div>
           </div>
         </div>
         
         <div class="card">
-          <div class="card-title"><span class="icon">📜</span>快速操作</div>
+          <div class="card-header">
+            <h3 class="card-title">服务状态</h3>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="status-dot"></div>
+              <div>
+                <div style="font-weight: 500;">Slack Bot</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">已连接</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="status-dot"></div>
+              <div>
+                <div style="font-weight: 500;">WebSocket</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">监听中</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="status-dot" style="background: var(--warning);"></div>
+              <div>
+                <div style="font-weight: 500;">API</div>
+                <div style="font-size: 12px; color: var(--text-secondary);">运行中</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Preview -->
+      <div class="page" id="page-preview" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">实时预览</h1>
+            <p class="page-subtitle">Wallpaper Engine 实时渲染预览</p>
+          </div>
           <div style="display: flex; gap: 12px;">
-            <button class="btn btn-primary" onclick="applyPreview()">应用预览</button>
-            <button class="btn btn-secondary" onclick="refreshData()">刷新数据</button>
-            <button class="btn btn-secondary" onclick="showHelp()">契约帮助</button>
+            <button class="btn btn-secondary" onclick="refreshPreview()">🔄 刷新</button>
+            <button class="btn btn-primary" onclick="openPreview()">新窗口打开</button>
           </div>
         </div>
         
         <div class="card">
-          <div class="card-title"><span class="icon">📡</span>连接状态</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="form-group">
-              <label class="form-label">Slack Bot</label>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="status-dot"></div>
-                <span>已连接</span>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">WebSocket</label>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="status-dot"></div>
-                <span>监听中</span>
-              </div>
+          <div class="preview-container">
+            <iframe class="preview-iframe" id="preview-frame" src="/"></iframe>
+            <div class="preview-badge">
+              <div class="status-dot"></div>
+              实时预览
             </div>
           </div>
         </div>
       </div>
       
-      <!-- 实时预览 -->
-      <div class="section" id="preview">
-        <div class="card">
-          <div class="card-title"><span class="icon">🎬</span>壁纸预览</div>
-          <div class="preview">
-            <iframe id="preview-frame" src="/" ></iframe>
-            <div class="preview-badge">实时预览</div>
+      <!-- Messages -->
+      <div class="page" id="page-messages" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">消息队列</h1>
+            <p class="page-subtitle">接收到的Slack消息记录</p>
           </div>
           <div style="display: flex; gap: 12px;">
-            <button class="btn btn-primary" onclick="refreshPreview()">刷新</button>
-            <button class="btn btn-secondary" onclick="openInBrowser()">新窗口打开</button>
+            <button class="btn btn-secondary" onclick="clearMessages()">🗑️ 清空</button>
+            <button class="btn btn-primary" onclick="refreshMessages()">🔄 刷新</button>
           </div>
-        </div>
-      </div>
-      
-      <!-- 数字人 -->
-      <div class="section" id="avatars">
-        <div class="card">
-          <div class="card-title"><span class="icon">👤</span>数字人管理</div>
-          <div class="grid" id="avatars-grid"></div>
-        </div>
-      </div>
-      
-      <!-- 天空盒 -->
-      <div class="section" id="environments">
-        <div class="card">
-          <div class="card-title"><span class="icon">🌤️</span>天空盒资源</div>
-          <div class="grid" id="environments-grid"></div>
-        </div>
-      </div>
-      
-      <!-- 背景 -->
-      <div class="section" id="backgrounds">
-        <div class="card">
-          <div class="card-title"><span class="icon">🖼️</span>背景资源</div>
-          <div class="grid" id="backgrounds-grid"></div>
-        </div>
-      </div>
-      
-      <!-- 特效 -->
-      <div class="section" id="effects">
-        <div class="card">
-          <div class="card-title"><span class="icon">✨</span>特效资源</div>
-          <div class="grid" id="effects-grid"></div>
-        </div>
-      </div>
-      
-      <!-- 契约协议 -->
-      <div class="section" id="contracts">
-        <div class="card">
-          <div class="card-title"><span class="icon">📜</span>契约协议说明</div>
-          <div class="tabs">
-            <div class="tab active" onclick="showContractTab('actions')">支持的命令</div>
-            <div class="tab" onclick="showContractTab('schema')">完整Schema</div>
-            <div class="tab" onclick="showContractTab('example')">使用示例</div>
-          </div>
-          <div id="contract-content" class="code-block"></div>
-        </div>
-      </div>
-      
-      <!-- 设置 -->
-      <div class="section" id="settings">
-        <div class="card">
-          <div class="card-title"><span class="icon">⚙️</span>基本设置</div>
-          <div class="form-group">
-            <label class="form-label">端口</label>
-            <input type="number" class="form-input" value="3001" id="setting-port">
-          </div>
-          <div class="form-group">
-            <label class="form-label">自动保存</label>
-            <select class="form-select" id="setting-autosave">
-              <option value="true">启用</option>
-              <option value="false">禁用</option>
-            </select>
-          </div>
-          <button class="btn btn-primary">保存设置</button>
         </div>
         
         <div class="card">
-          <div class="card-title"><span class="icon">📁</span>资源目录</div>
-          <div class="form-group">
-            <label class="form-label">资源文件夹</label>
-            <input type="text" class="form-input" value="./resources" id="setting-resources">
+          <div class="card-header">
+            <h3 class="card-title">消息列表</h3>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary);" id="message-count">0 条消息</span>
+            </div>
           </div>
-          <button class="btn btn-secondary">打开文件夹</button>
+          <div class="message-list" id="message-list">
+            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+              暂无消息
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Environments -->
+      <div class="page" id="page-environments" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">天空盒</h1>
+            <p class="page-subtitle">3D场景环境预设</p>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="resource-grid" id="environments-grid"></div>
+        </div>
+      </div>
+      
+      <!-- Contracts -->
+      <div class="page" id="page-contracts" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">契约协议</h1>
+            <p class="page-subtitle">支持的命令和参数说明</p>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">支持的命令</h3>
+          </div>
+          <pre style="font-family: monospace; font-size: 13px; line-height: 1.6; color: var(--accent-secondary);" id="contracts-content">
+加载中...
+          </pre>
+        </div>
+      </div>
+      
+      <!-- Settings -->
+      <div class="page" id="page-settings" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">设置</h1>
+            <p class="page-subtitle">系统配置选项</p>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">基本设置</h3>
+          </div>
+          <div class="form-group">
+            <label class="form-label">最大消息保留数</label>
+            <input type="number" class="form-input" value="100" id="setting-max-messages">
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
         </div>
       </div>
     </div>
@@ -234,14 +691,7 @@
   <div class="toast" id="toast" style="display: none;"></div>
 
   <script>
-    // 数据
-    const avatars = [
-      { id: 'taizi', name: '太子', role: '项目总控', status: 'idle', color: '#8b5cf6' },
-      { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'busy', color: '#3b82f6' },
-      { id: 'menxia', name: '门下省', role: '审核审议', status: 'idle', color: '#10b981' },
-      { id: 'shangshu', name: '尚书省', role: '执行派发', status: 'idle', color: '#f59e0b' },
-    ];
-    
+    // Data
     const environments = [
       { id: 'city', name: '城市', icon: '🏙️', desc: '现代城市景观' },
       { id: 'sunset', name: '日落', icon: '🌅', desc: '暖色调日落' },
@@ -251,106 +701,27 @@
       { id: 'studio', name: '工作室', icon: '🎬', desc: '专业摄影棚' },
       { id: 'park', name: '公园', icon: '🌳', desc: '郊外公园' },
       { id: 'lobby', name: '大堂', icon: '🏨', desc: '酒店大堂' },
-      { id: 'apartment', name: '公寓', icon: '🏢', desc: '现代公寓' },
-      { id: 'parking', name: '停车场', icon: '🅿️', desc: '室内停车场' },
-      { id: 'footballfield', name: '足球场', icon: '⚽', desc: '足球场' },
     ];
     
-    const backgrounds = [
-      { id: 'gradient-blue', name: '渐变蓝', icon: '🔵', desc: '深蓝渐变' },
-      { id: 'gradient-purple', name: '渐变紫', icon: '🟣', desc: '紫色渐变' },
-      { id: 'static-black', name: '纯黑', icon: '⚫', desc: '纯黑背景' },
-    ];
-    
-    const effects = [
-      { id: 'confetti', name: '彩带', icon: '🎊', desc: '庆祝彩带' },
-      { id: 'rain', name: '雨', icon: '🌧️', desc: '雨滴效果' },
-      { id: 'snow', name: '雪', icon: '❄️', desc: '雪花飘落' },
-      { id: 'fireworks', name: '烟花', icon: '🎆', desc: '烟花表演' },
-      { id: 'sparkle', name: '闪光', icon: '✨', desc: '闪光特效' },
-    ];
-    
-    const contracts = {
-      actions: `支持的命令:
-agent_list_update   - 更新数字人列表
-task_list_update   - 更新任务列表  
-environment_update - 更新天空盒
-background_update - 更新背景
-camera_update     - 更新相机
-effect_update     - 播放特效
-ui_update         - 更新UI配置
-avatar_action     - 数字人动作`,
-      schema: `完整配置Schema请查看:
-GET /api/protocols`,
-      example: `发送JSON消息到Slack频道:
-
-{"action": "environment_update", "data": {"preset": "sunset"}}
-
-{"action": "task_list_update", "data": {"tasks": [{"id":1,"title":"新任务","agent":"尚书省","status":"in-progress","priority":"high"}]}}`
-    };
-    
-    // 导航
+    // Navigation
     document.querySelectorAll('.nav-item').forEach(item => {
       item.addEventListener('click', () => {
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        item.classList.add('active');
-        document.getElementById(item.dataset.section).classList.add('active');
+        const page = item.dataset.page;
+        showPage(page);
       });
     });
     
-    // 渲染资源
-    function renderResources() {
-      document.getElementById('avatars-grid').innerHTML = avatars.map(a => `
-        <div class="resource-card" onclick="selectResource('avatars', '${a.id}')">
-          <div class="resource-icon">👤</div>
-          <div class="resource-name">${a.name}</div>
-          <div class="resource-desc">${a.role}</div>
-        </div>
-      `).join('');
+    function showPage(page) {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+      document.getElementById(`page-${page}`).style.display = 'block';
       
-      document.getElementById('environments-grid').innerHTML = environments.map(e => `
-        <div class="resource-card" onclick="selectResource('environments', '${e.id}')">
-          <div class="resource-icon">${e.icon}</div>
-          <div class="resource-name">${e.name}</div>
-          <div class="resource-desc">${e.desc}</div>
-        </div>
-      `).join('');
-      
-      document.getElementById('backgrounds-grid').innerHTML = backgrounds.map(b => `
-        <div class="resource-card" onclick="selectResource('backgrounds', '${b.id}')">
-          <div class="resource-icon">${b.icon}</div>
-          <div class="resource-name">${b.name}</div>
-          <div class="resource-desc">${b.desc}</div>
-        </div>
-      `).join('');
-      
-      document.getElementById('effects-grid').innerHTML = effects.map(e => `
-        <div class="resource-card" onclick="selectResource('effects', '${e.id}')">
-          <div class="resource-icon">${e.icon}</div>
-          <div class="resource-name">${e.name}</div>
-          <div class="resource-desc">${e.desc}</div>
-        </div>
-      `).join('');
-      
-      document.getElementById('stat-avatars').textContent = avatars.length;
-      document.getElementById('stat-environments').textContent = environments.length;
-      document.getElementById('stat-effects').textContent = effects.length;
+      if (page === 'messages') refreshMessages();
+      if (page === 'contracts') loadContracts();
     }
     
-    // 选择资源
-    function selectResource(type, id) {
-      showToast(`已选择 ${type}: ${id}`);
-    }
-    
-    // 契约Tab
-    function showContractTab(tab) {
-      document.querySelectorAll('#contracts .tab').forEach(t => t.classList.remove('active'));
-      event.target.classList.add('active');
-      document.getElementById('contract-content').textContent = contracts[tab];
-    }
-    
-    // 显示Toast
+    // Toast
     function showToast(msg) {
       const toast = document.getElementById('toast');
       toast.textContent = msg;
@@ -358,43 +729,90 @@ GET /api/protocols`,
       setTimeout(() => toast.style.display = 'none', 3000);
     }
     
-    // 刷新数据
-    async function refreshData() {
+    // Refresh all
+    async function refreshAll() {
       showToast('刷新数据...');
-      try {
-        const res = await fetch('/api/config');
-        const data = await res.json();
-        showToast('数据已更新');
-      } catch(e) {
-        showToast('刷新失败: ' + e.message);
-      }
+      await refreshMessages();
+      showToast('数据已更新');
     }
     
-    // 刷新预览
+    // Preview
     function refreshPreview() {
       document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
-      showToast('预览已刷新');
     }
     
-    // 新窗口打开
-    function openInBrowser() {
+    function openPreview() {
       window.open('/', '_blank');
     }
     
-    // 显示帮助
-    async function showHelp() {
+    // Messages
+    async function refreshMessages() {
       try {
-        const res = await fetch('/api/protocols/help');
-        const text = await res.text();
-        document.getElementById('contract-content').textContent = text;
+        const res = await fetch('/api/messages');
+        const data = await res.json();
+        
+        document.getElementById('stat-messages').textContent = data.stats.total;
+        document.getElementById('message-count').textContent = `${data.stats.total} 条消息`;
+        
+        const list = document.getElementById('message-list');
+        if (data.messages.length === 0) {
+          list.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">暂无消息</div>';
+        } else {
+          list.innerHTML = data.messages.map(m => `
+            <div class="message-item">
+              <div class="message-time">${new Date(m.timestamp).toLocaleString()}</div>
+              <div class="message-content">${m.text || '(无文本)'}</div>
+            </div>
+          `).join('');
+        }
       } catch(e) {
-        showToast('获取帮助失败');
+        console.error(e);
       }
     }
     
-    // 初始化
-    renderResources();
-    showContractTab('actions');
+    async function clearMessages() {
+      if (!confirm('确定清空消息队列？')) return;
+      await fetch('/api/messages', { method: 'DELETE' });
+      refreshMessages();
+      showToast('消息已清空');
+    }
+    
+    // Contracts
+    async function loadContracts() {
+      try {
+        const res = await fetch('/api/protocols/help');
+        const text = await res.text();
+        document.getElementById('contracts-content').textContent = text;
+      } catch(e) {
+        document.getElementById('contracts-content').textContent = '加载失败';
+      }
+    }
+    
+    // Settings
+    async function saveSettings() {
+      const max = document.getElementById('setting-max-messages').value;
+      await fetch('/api/messages/max', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ max: parseInt(max) })
+      });
+      showToast('设置已保存');
+    }
+    
+    // Render resources
+    document.getElementById('environments-grid').innerHTML = environments.map(e => `
+      <div class="resource-card" onclick="selectResource(this, '${e.id}')">
+        <div class="resource-icon">${e.icon}</div>
+        <div class="resource-name">${e.name}</div>
+        <div class="resource-desc">${e.desc}</div>
+      </div>
+    `).join('');
+    
+    function selectResource(el, id) {
+      document.querySelectorAll('.resource-card').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      showToast(`已选择: ${id}`);
+    }
   </script>
 </body>
 </html>

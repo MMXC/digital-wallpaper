@@ -29,6 +29,7 @@
 
 import 'dotenv/config';
 import { WebClient } from '@slack/web-api';
+import { addMessage } from './message-queue.js';
 
 // Slack 客户端
 let slackClient = null;
@@ -167,6 +168,9 @@ async function processMessages() {
   const messages = await fetchMessages();
   
   for (const msg of messages) {
+    // 记录消息到队列
+    addMessage(msg);
+    
     if (msg.text && messageCallback) {
       // 尝试解析 JSON 契约
       const contract = parseContract(msg.text);
