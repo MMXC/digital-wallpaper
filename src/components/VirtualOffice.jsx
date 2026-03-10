@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 
 // ============ 背景配置 ============
 const BACKGROUND_CONFIG = {
-  mode: 'static',  // 'static' | 'video' | 'environment'
+  mode: 'environment',  // 'static' | 'video' | 'environment'
   static: {
     color: '#0f172a',  // 默认深蓝色
     image: null,       // 可选：背景图URL
@@ -13,7 +13,7 @@ const BACKGROUND_CONFIG = {
     url: null,         // 视频URL
   },
   environment: {
-    preset: 'city',   // 'city' | 'studio' | 'park' | 'dawn' 等
+    preset: 'city',   // 'city' | 'studio' | 'park' | 'dawn' | 'night' | 'sunset' 等
   }
 }
 
