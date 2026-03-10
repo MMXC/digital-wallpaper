@@ -136,7 +136,10 @@ async function fetchMessages() {
       return result.messages
         .filter(msg => {
           // 排除机器人消息
-          if (config.ignoreBots && (msg.bot_id || msg.subtype === 'bot_message')) return false;
+          if (config.ignoreBots && (msg.bot_id || msg.subtype === 'bot_message')) {
+            console.log('🤖 跳过机器人消息');
+            return false;
+          }
           
           // 过滤指定用户
           if (config.listenUsers && config.listenUsers.length > 0) {
@@ -144,13 +147,7 @@ async function fetchMessages() {
             if (!userId || !config.listenUsers.includes(userId)) return false;
           }
           
-          // 关键词过滤：包含关键词 OR 包含 action 的 JSON 契约
-          if (config.filterKeywords && config.filterKeywords.length > 0) {
-            const text = msg.text || '';
-            const hasKeyword = config.filterKeywords.some(kw => text.includes(kw));
-            const hasActionJson = text.includes('"action"');
-            if (!hasKeyword && !hasActionJson) return false;
-          }
+          console.log('📩 消息内容:', msg.text?.substring(0, 100));
           
           return true;
         })
