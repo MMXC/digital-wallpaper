@@ -94,6 +94,7 @@ function useWebSocket(onMessage) {
 // ============ 使用轮询或WebSocket获取更新 ============
 function usePolling(onTaskUpdate) {
   const [agents, setAgents] = useState([])
+  const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [wsConnected, setWsConnected] = useState(false)
   
@@ -130,17 +131,18 @@ function usePolling(onTaskUpdate) {
         const config = await res.json()
         if (config.tasks && config.tasks.length > 0) {
           console.log('📋 轮询获取任务:', config.tasks)
+          setTasks(config.tasks)
           TASK_BOARD_CONFIG.tasks = config.tasks
           onTaskUpdate?.(config.tasks)
         }
-        if (config.agents && !connected) {
+        if (config.agents) {
           setAgents(config.agents)
         }
       }
     } catch (e) {
       console.log('轮询:', e.message)
     }
-  }, [onTaskUpdate, connected])
+  }, [onTaskUpdate])
   
   useEffect(() => {
     fetchUpdates()
@@ -151,7 +153,7 @@ function usePolling(onTaskUpdate) {
     }
   }, [fetchUpdates, connected])
   
-  return { agents, loading, wsConnected }
+  return { agents, tasks, loading, wsConnected }
 }
 
 // ============ OpenClaw 状态获取 Hook ============
@@ -903,7 +905,7 @@ export default function VirtualOffice() {
     }
   }
   
-  const { agents, loading, wsConnected } = useOpenClawStatus(handleNewTask)
+  const { agents, tasks, loading, wsConnected } = useOpenClawStatus(handleNewTask)
   
   // 处理任务点击：切换到对应的 Agent
   const handleTaskClick = (task) => {
@@ -1026,7 +1028,7 @@ export default function VirtualOffice() {
         <TaskBoard 
           onTaskClick={handleTaskClick} 
           selectedAgent={selectedAgent}
-          tasks={TASK_BOARD_CONFIG.tasks}
+          tasks={tasks}
           showEdict={showEdict}
           onEdictComplete={() => setShowEdict(null)}
         />
