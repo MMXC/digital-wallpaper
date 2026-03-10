@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Text, Html, Float, Environment } from '@react-three/drei'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 // ============ 背景配置 ============
 const BACKGROUND_CONFIG = {
@@ -8,12 +8,18 @@ const BACKGROUND_CONFIG = {
   environment: { preset: 'city' }
 }
 
-// ============ 默认任务 ============
+// ============ 默认数据 ============
 const DEFAULT_TASKS = [
   { id: 1, title: '调研技术方案', agent: '中书省', status: 'completed', priority: 'high' },
   { id: 2, title: '原型开发', agent: '尚书省', status: 'in-progress', priority: 'high' },
   { id: 3, title: '测试验证', agent: '门下省', status: 'pending', priority: 'medium' },
-  { id: 4, title: '文档整理', agent: '礼部', status: 'pending', priority: 'low' },
+]
+
+const DEFAULT_AGENTS = [
+  { id: 'taizi', name: '太子', role: '项目总控', status: 'idle', color: '#8b5cf6' },
+  { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'idle', color: '#3b82f6' },
+  { id: 'menxia', name: '门下省', role: '审核审议', status: 'busy', color: '#10b981' },
+  { id: 'shangshu', name: '尚书省', role: '执行派发', status: 'idle', color: '#f59e0b' },
 ]
 
 // ============ 3D Agent 头像 ============
@@ -24,19 +30,14 @@ function AgentAvatar({ agent, position }) {
   return (
     <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5}>
       <group position={position}>
-        {/* 头部 */}
         <mesh position={[0, 0.55, 0]} castShadow>
           <sphereGeometry args={[0.25, 32, 32]} />
           <meshStandardMaterial color={color} metalness={0.5} roughness={0.3} />
         </mesh>
-        
-        {/* 身体 */}
         <mesh position={[0, 0, 0]} castShadow>
           <cylinderGeometry args={[0.15, 0.2, 0.5, 16]} />
           <meshStandardMaterial color={color} metalness={0.3} roughness={0.5} />
         </mesh>
-        
-        {/* 名字标签 */}
         <Html position={[0, 1.1, 0]} center distanceFactor={10}>
           <div style={{
             background: 'rgba(15, 23, 42, 0.9)',
@@ -52,8 +53,6 @@ function AgentAvatar({ agent, position }) {
             <div style={{ fontSize: '10px', opacity: 0.7 }}>{agent.role}</div>
           </div>
         </Html>
-        
-        {/* 状态标签 */}
         <Html position={[0, -0.6, 0]} center distanceFactor={10}>
           <div style={{
             background: color,
@@ -63,7 +62,7 @@ function AgentAvatar({ agent, position }) {
             color: '#000',
             fontWeight: 'bold',
           }}>
-            {agent.status === 'idle' ? '🟢 待命' : agent.status === 'busy' ? '🔴 工作' : '⭕ 阻塞'}
+            {agent.status === 'idle' ? '🟢' : agent.status === 'busy' ? '🔴' : '⭕'}
           </div>
         </Html>
       </group>
@@ -71,30 +70,23 @@ function AgentAvatar({ agent, position }) {
   )
 }
 
-// ============ 3D 场景 ============
+// ============ 3D 场景（内部组件，可以使用hooks）============
 function OfficeScene({ agents }) {
   return (
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
       <pointLight position={[-5, 5, -5]} intensity={0.5} color="#4ecca3" />
-      
-      {/* 地面 */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
         <planeGeometry args={[20, 20]} />
         <meshStandardMaterial color="#1e293b" />
       </mesh>
-      
-      {/* 网格 */}
       <gridHelper args={[20, 20, '#334155', '#1e293b']} position={[0, -0.49, 0]} />
-      
-      {/* Agent 排列 */}
       {agents.map((agent, i) => {
         const row = Math.floor(i / 3)
         const col = i % 3
         return <AgentAvatar key={agent.id} agent={agent} position={[col * 2 - 2, 0, row * 2 - 2]} />
       })}
-      
       <Environment preset={BACKGROUND_CONFIG.environment.preset} background />
       <OrbitControls target={[0, 0.5, 0]} maxPolarAngle={Math.PI / 2 - 0.1} />
     </>
@@ -151,38 +143,64 @@ function TaskBoard({ tasks }) {
   )
 }
 
-// ============ 主组件 ============
+// ============ 主组件（无状态）============
 export default function VirtualOffice() {
-  const agents = [
-    { id: 'taizi', name: '太子', role: '项目总控', status: 'idle', color: '#8b5cf6' },
-    { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'busy', color: '#3b82f6' },
-    { id: 'menxia', name: '门下省', role: '审核审议', status: 'idle', color: '#10b981' },
-    { id: 'shangshu', name: '尚书省', role: '执行派发', status: 'idle', color: '#f59e0b' },
-  ]
+  // 初始状态
+  const [agents, setAgents] = useState(DEFAULT_AGENTS)
+  const [tasks, setTasks] = useState(DEFAULT_TASKS)
+  const [loading, setLoading] = useState(true)
+  
+  // 轮询获取更新
+  useEffect(() => {
+    let interval = null
+    
+    const fetchUpdates = async () => {
+      try {
+        const res = await fetch('http://localhost:3001/api/config')
+        if (res.ok) {
+          const config = await res.json()
+          if (config.tasks) {
+            setTasks(config.tasks)
+          }
+          if (config.agents) {
+            setAgents(config.agents)
+          }
+        }
+      } catch (e) {
+        // 忽略连接错误
+      }
+    }
+    
+    // 立即获取一次
+    fetchUpdates()
+    
+    // 每3秒轮询
+    interval = setInterval(fetchUpdates, 3000)
+    
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [])
   
   return (
     <div style={{ width: '100%', height: '100vh', background: '#000', overflow: 'hidden' }}>
-      {/* 3D 场景 */}
       <Canvas shadows camera={{ position: [0, 6, 10], fov: 50 }}>
         <OfficeScene agents={agents} />
       </Canvas>
       
-      {/* 标题 */}
       <div style={{ position: 'absolute', top: '16px', left: '16px', color: 'white', fontSize: '20px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
         🏛️ 虚拟办公室
       </div>
       
-      {/* 统计 */}
       <div style={{ position: 'absolute', top: '16px', right: '340px', background: 'rgba(15, 23, 42, 0.9)', borderRadius: '12px', padding: '16px', color: 'white', minWidth: '120px' }}>
         <div style={{ fontSize: '14px', marginBottom: '8px' }}>📊 团队状态</div>
         <div style={{ display: 'flex', gap: '16px', fontSize: '14px' }}>
-          <div style={{ textAlign: 'center' }}><div style={{ fontSize: '24px', color: '#4ade80' }}>3</div><div style={{ fontSize: '10px' }}>🟢</div></div>
-          <div style={{ textAlign: 'center' }}><div style={{ fontSize: '24px', color: '#facc15' }}>1</div><div style={{ fontSize: '10px' }}>🔴</div></div>
+          <div style={{ textAlign: 'center' }}><div style={{ fontSize: '24px', color: '#4ade80' }}>{agents.filter(a => a.status === 'idle').length}</div><div style={{ fontSize: '10px' }}>🟢</div></div>
+          <div style={{ textAlign: 'center' }}><div style={{ fontSize: '24px', color: '#facc15' }}>{agents.filter(a => a.status === 'busy').length}</div><div style={{ fontSize: '10px' }}>🔴</div></div>
         </div>
       </div>
       
-      {/* 任务看板 */}
-      <TaskBoard tasks={DEFAULT_TASKS} />
+      <TaskBoard tasks={tasks} />
     </div>
   )
 }
