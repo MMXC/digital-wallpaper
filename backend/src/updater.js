@@ -3,7 +3,7 @@
  */
 
 const GITHUB_REPO = 'MMXC/digital-wallpaper';
-const CURRENT_VERSION = '0.1.0';
+export const CURRENT_VERSION = '0.1.0';
 
 let broadcast = null;
 
@@ -137,4 +137,4 @@ function compareVersions(v1, v2) {
   return 0;
 }
 
-export default { checkForUpdates, getResources, CURRENT_VERSION };
+export default { checkForUpdates, getResources };
