@@ -631,8 +631,13 @@ function OfficeScene({ agents, onAgentClick, selectedAgent }) {
 const TASK_BOARD_CONFIG = {
   enabled: true,
   position: 'top-right',
-  tasks: [],
-  maxTasks: 6,  // 最多显示任务数
+  tasks: [
+    { id: 1, title: '调研技术方案', agent: '中书省', status: 'completed', priority: 'high' },
+    { id: 2, title: '原型开发', agent: '尚书省', status: 'in-progress', priority: 'high' },
+    { id: 3, title: '测试验证', agent: '门下省', status: 'pending', priority: 'medium' },
+    { id: 4, title: '文档整理', agent: '礼部', status: 'pending', priority: 'low' },
+  ],
+  maxTasks: 6,
 }
 
 // ============ 圣旨展示组件 ============
