@@ -35,6 +35,11 @@ app.get('/admin', (req, res) => {
   res.sendFile(join(dirname(fileURLToPath(import.meta.url)), '../public/admin.html'));
 });
 
+// 前端首页
+app.get('/', (req, res) => {
+  res.sendFile(join(dirname(fileURLToPath(import.meta.url)), '../../dist/index.html'));
+});
+
 // ============ OpenClaw 状态获取 ============
 
 // ============ Agent 配置（不再直连 OpenClaw）============
