@@ -33,21 +33,11 @@ const CONFIG = {
   backendWsUrl: 'ws://localhost:18790'
 };
 
-// 创建默认托盘图标（16x16 像素）
+// 创建默认托盘图标
 function createDefaultIcon() {
-  // 创建一个简单的 16x16 紫色方块图标
-  const size = 16;
-  const canvas = Buffer.alloc(size * size * 4);
-  
-  // 填充紫色 (#6366f1)
-  for (let i = 0; i < size * size; i++) {
-    canvas[i * 4] = 99;      // R
-    canvas[i * 4 + 1] = 102; // G
-    canvas[i * 4 + 2] = 241; // B
-    canvas[i * 4 + 3] = 255; // A
-  }
-  
-  return nativeImage.createFromBuffer(canvas, { width: size, height: size });
+  // 使用 data URL 创建一个 16x16 紫色图标
+  const iconDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAKklEQVQ4T2NkoBAwUqifgWoGjBoASgAHBzYwYBQwjyoYNDQgKgzEuIEOAABs8wER8K7xHAAAAABJRU5ErkJggg==';
+  return nativeImage.createFromDataURL(iconDataUrl);
 }
 
 // ============ 创建主窗口 ============
@@ -273,8 +263,18 @@ ipcMain.handle('open-folder', async (event, folderPath) => shell.openPath(folder
 // ============ 应用生命周期 ============
 app.whenReady().then(() => {
   console.log('Digital Wallpaper starting...');
-  createWindow();
-  createTray();
+  try {
+    createWindow();
+    console.log('Window created');
+  } catch (e) {
+    console.error('Window create error:', e);
+  }
+  try {
+    createTray();
+    console.log('Tray creation attempted');
+  } catch (e) {
+    console.error('Tray create error:', e);
+  }
   setTimeout(() => startAllServices(), 1500);
   console.log('Ready');
 });
