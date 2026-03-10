@@ -7,9 +7,11 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync, rmSync } from 'fs';
 
 // 导入 Slack 和 WebSocket 模块
 import { initSlackClient, onMessage, startPolling, stopPolling, simulateMessage, slackConfig } from './slack.js';
@@ -273,6 +275,104 @@ app.get('/api/resources', async (req, res) => {
 // 获取当前版本
 app.get('/api/version', (req, res) => {
   res.json({ version: CURRENT_VERSION });
+});
+
+// ============ 文件上传 ============
+const uploadDir = join(dirname(fileURLToPath(import.meta.url)), '../public/uploads');
+if (!existsSync(uploadDir)) {
+  mkdirSync(uploadDir, { recursive: true });
+}
+
+// 配置 multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    cb(null, unique + '-' + file.originalname);
+  }
+});
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+// 上传文件
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: '没有文件' });
+    return;
+  }
+  
+  const fileInfo = {
+    filename: req.file.filename,
+    originalName: req.file.originalname,
+    size: req.file.size,
+    mimetype: req.file.mimetype,
+    url: '/uploads/' + req.file.filename,
+    uploadedAt: new Date().toISOString()
+  };
+  
+  res.json({ success: true, file: fileInfo });
+});
+
+// 上传 Wall (.paper Engine 包zip)
+app.post('/api/upload/wallpaper', upload.single('package'), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: '没有文件' });
+    return;
+  }
+  
+  // 解析 project.json
+  let projectInfo = null;
+  
+  try {
+    // 这里可以添加 zip 解析逻辑
+    // 暂时返回基本信息
+    projectInfo = {
+      name: req.file.originalname.replace('.zip', ''),
+      size: req.file.size
+    };
+  } catch (e) {
+    console.error('解析失败:', e);
+  }
+  
+  res.json({ 
+    success: true, 
+    file: {
+      filename: req.file.filename,
+      url: '/uploads/' + req.file.filename,
+      project: projectInfo
+    }
+  });
+});
+
+// 获取已上传文件列表
+app.get('/api/uploads', (req, res) => {
+  try {
+    const files = readdirSync(uploadDir).map(filename => {
+      const filepath = join(uploadDir, filename);
+      const stats = statSync(filepath);
+      return {
+        filename,
+        size: stats.size,
+        uploadedAt: stats.mtime.toISOString()
+      };
+    });
+    res.json({ files });
+  } catch (e) {
+    res.json({ files: [] });
+  }
+});
+
+// 删除上传文件
+app.delete('/api/uploads/:filename', (req, res) => {
+  const filepath = join(uploadDir, req.params.filename);
+  if (existsSync(filepath)) {
+    rmSync(filepath);
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: '文件不存在' });
+  }
 });
 
 // 模拟消息（测试用）
