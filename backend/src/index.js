@@ -173,46 +173,47 @@ initWebSocketServer(server);
 // 动态 Agent 列表存储
 let dynamicAgents = null;
 
+// 契约处理函数
+const handleContract = (contract, msg) => {
+  console.log('📨 收到 Slack 契约:', contract.action);
+  
+  switch (contract.action) {
+    case 'agent_list_update':
+      if (contract.data && contract.data.agents) {
+        dynamicAgents = contract.data.agents;
+        console.log(`✅ Agent 列表已更新: ${dynamicAgents.length} 个`);
+        broadcast({ type: 'agent_update', agents: dynamicAgents });
+      }
+      break;
+    case 'status_update':
+      if (contract.agent) {
+        broadcastToAgent(contract.agent, { action: 'status_update', data: contract.data });
+      }
+      break;
+    case 'task_update':
+      broadcastToAgent(contract.agent, { action: 'task_update', data: contract.data });
+      break;
+    case 'broadcast':
+      broadcast({ type: 'broadcast', data: contract.data });
+      break;
+    case 'avatar_action':
+      if (contract.agent) {
+        broadcastToAgent(contract.agent, { action: 'avatar_action', data: contract.data });
+      }
+      break;
+    case 'background_update':
+      broadcast({ type: 'background_update', data: contract.data });
+      break;
+    case 'effect_update':
+      broadcast({ type: 'effect_update', data: contract.data });
+      break;
+  }
+};
+
 // 初始化 Slack 客户端并设置消息处理
 initSlackClient(process.env.SLACK_BOT_TOKEN);
 onMessage((contract, msg) => {
-  console.log('📨 收到 Slack 契约:', contract);
-  
-  // 根据 action 处理不同消息
-  if (contract.action === 'status_update') {
-    // 广播给前端
-    const updateCount = broadcastToAgent(contract.agent, {
-      action: 'status_update',
-      data: contract.data
-    });
-    console.log(`✅ 状态更新已广播给 ${updateCount} 个客户端`);
-  } else if (contract.action === 'task_update') {
-    // 任务更新
-    broadcastToAgent(contract.agent, {
-      action: 'task_update',
-      data: contract.data
-    });
-  } else if (contract.action === 'broadcast') {
-    // 广播给所有
-    const { broadcast } = require('./websocket.js');
-    broadcast({
-      type: 'broadcast',
-      data: contract.data
-    });
-  } else if (contract.action === 'agent_list_update') {
-    // 更新 Agent 列表
-    if (contract.data && contract.data.agents && Array.isArray(contract.data.agents)) {
-      dynamicAgents = contract.data.agents;
-      console.log(`✅ Agent 列表已更新: ${dynamicAgents.length} 个 Agent`);
-      
-      // 广播给所有客户端
-      const { broadcast } = require('./websocket.js');
-      broadcast({
-        type: 'agent_update',
-        agents: dynamicAgents
-      });
-    }
-  }
+  handleContract(contract, msg);
 });
 
 // 启动 Slack 轮询（如果配置了 token）

@@ -21,11 +21,34 @@ const config = {
   listenUsers: process.env.SLACK_LISTEN_USERS ? process.env.SLACK_LISTEN_USERS.split(',') : null,  // 只监听指定用户，null=监听全部
   ignoreBots: true,  // 忽略机器人消息
   
-  // 消息过滤：包含关键词 OR 包含 action 的 JSON 契约才处理
-  filterKeywords: ['任务', 'agent', 'status', '状态', 'update', 'list'],
-  
-  // 忽略的 action 类型
-  ignoreActions: ['dance', 'wave', 'greet'],
+  /**
+ * Slack 消息契约协议设计
+ * 
+ * 支持的命令格式:
+ * 
+ * 1. agent_list_update - 更新 Agent 列表
+ * {"action": "agent_list_update", "data": {"agents": [...]}}
+ * 
+ * 2. status_update - 更新单个 Agent 状态
+ * {"action": "status_update", "agent": "taizi", "data": {"status": "busy", "currentTask": "处理中"}}
+ * 
+ * 3. broadcast - 广播消息给所有 Agent
+ * {"action": "broadcast", "data": {"message": "hello"}}
+ * 
+ * 4. avatar_action - Avatar 动作/表情
+ * {"action": "avatar_action", "agent": "taizi", "data": {"action": "dance", "emotion": "happy"}}
+ * 
+ * 5. background_update - 更新背景
+ * {"action": "background_update", "data": {"mode": "environment", "preset": "city"}}
+ * {"action": "background_update", "data": {"mode": "static", "color": "#000000"}}
+ * {"action": "background_update", "data": {"mode": "video", "url": "https://..."}}
+ * 
+ * 6. effect_update - 特效
+ * {"action": "effect_update", "data": {"effect": "confetti", "duration": 3000}}
+ */
+
+// 忽略的动作类型（这些是 avatar 动作，不是系统命令）
+const IGNORE_ACTIONS = ['dance', 'wave', 'greet', 'jump', 'spin'];
 };
 
 let pollingTimer = null;
@@ -157,11 +180,11 @@ async function processMessages() {
       const contract = parseContract(msg.text);
       
       if (contract.valid) {
-        // 跳过忽略的 action
-        if (config.ignoreActions && config.ignoreActions.includes(contract.action)) {
+        // 跳过忽略的 action（avatar 动作）
+        if (IGNORE_ACTIONS.includes(contract.action)) {
           continue;
         }
-        console.log('📨 收到有效契约:', contract);
+        console.log('📨 收到有效契约:', contract.action);
         messageCallback(contract, msg);
       }
     }
