@@ -47,24 +47,42 @@ function createDefaultIcon() {
   return nativeImage.createFromBuffer(canvas, { width: size, height: size });
 }
 
-// ============ 创建主窗口 (Admin 设置页面) ============
+// ============ 创建主窗口 (Admin 管理界面) ============
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 700,
+    width: 1400,
+    height: 900,
     title: 'Digital Wallpaper - Admin',
     icon: CONFIG.trayIconPath,
     webPreferences: {
-      nodeIntegration: true,
+      nodeIntegration: false,
       contextIsolation: true
     },
     show: true
   });
 
-  // 加载本地 admin 设置页面
-  mainWindow.loadFile(path.join(__dirname, 'settings.html'));
-  mainWindow.setMenu(null);
-  console.log('Admin window ready');
+  // 加载 backend 的 admin 页面
+  const adminUrl = 'http://localhost:3001/admin';
+  
+  // 等待 backend 准备好
+  const checkBackend = () => {
+    const http = require('http');
+    const req = http.get(adminUrl, (res) => {
+      if (res.statusCode === 200) {
+        mainWindow.loadURL(adminUrl);
+        console.log('Admin page loaded');
+      } else {
+        setTimeout(checkBackend, 1000);
+      }
+    });
+    req.on('error', () => {
+      setTimeout(checkBackend, 1000);
+    });
+  };
+  
+  // 延迟检查，让 backend 有时间启动
+  setTimeout(checkBackend, 3000);
+  console.log('Waiting for backend...');
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
