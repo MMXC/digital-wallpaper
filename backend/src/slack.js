@@ -21,8 +21,8 @@ const config = {
   listenUsers: process.env.SLACK_LISTEN_USERS ? process.env.SLACK_LISTEN_USERS.split(',') : null,  // 只监听指定用户，null=监听全部
   ignoreBots: true,  // 忽略机器人消息
   
-  // 消息过滤：匹配关键词才处理
-  filterKeywords: ['任务', 'agent', 'status', '状态'],  // null=处理所有消息
+  // 消息过滤：包含关键词 OR 包含 action 的 JSON 契约才处理
+  filterKeywords: ['任务', 'agent', 'status', '状态', 'update', 'list'],
 };
 
 let pollingTimer = null;
@@ -123,10 +123,12 @@ async function fetchMessages() {
             if (!userId || !config.listenUsers.includes(userId)) return false;
           }
           
-          // 关键词过滤
+          // 关键词过滤：包含关键词 OR 包含 action 的 JSON 契约
           if (config.filterKeywords && config.filterKeywords.length > 0) {
             const text = msg.text || '';
-            if (!config.filterKeywords.some(kw => text.includes(kw))) return false;
+            const hasKeyword = config.filterKeywords.some(kw => text.includes(kw));
+            const hasActionJson = text.includes('"action"');
+            if (!hasKeyword && !hasActionJson) return false;
           }
           
           return true;
