@@ -913,7 +913,17 @@ export default function VirtualOffice() {
     }
   }
   
-  const { agents, tasks, loading, wsConnected } = useOpenClawStatus(handleNewTask)
+  // 默认任务
+  const defaultTasks = [
+    { id: 1, title: '调研技术方案', agent: '中书省', status: 'completed', priority: 'high' },
+    { id: 2, title: '原型开发', agent: '尚书省', status: 'in-progress', priority: 'high' },
+    { id: 3, title: '测试验证', agent: '门下省', status: 'pending', priority: 'medium' },
+    { id: 4, title: '文档整理', agent: '礼部', status: 'pending', priority: 'low' },
+  ]
+  
+  const displayTasks = tasks.length > 0 ? tasks : defaultTasks
+  
+  const { agents, loading, wsConnected } = useOpenClawStatus(handleNewTask)
   
   // 处理任务点击：切换到对应的 Agent
   const handleTaskClick = (task) => {
@@ -1036,7 +1046,7 @@ export default function VirtualOffice() {
         <TaskBoard 
           onTaskClick={handleTaskClick} 
           selectedAgent={selectedAgent}
-          tasks={tasks}
+          tasks={displayTasks}
           showEdict={showEdict}
           onEdictComplete={() => setShowEdict(null)}
         />
