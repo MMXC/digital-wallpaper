@@ -126,6 +126,23 @@ function useOpenClawStatus() {
   // 使用 WebSocket
   const { connected } = useWebSocket(handleWsMessage)
   
+  // 从后端获取配置
+  useEffect(() => {
+    fetch('http://localhost:3001/api/config', { signal: AbortSignal.timeout(2000) })
+      .then(res => res.json())
+      .then(config => {
+        if (config.avatars) Object.assign(AGENT_CONFIG.avatars, config.avatars)
+        if (config.names) Object.assign(AGENT_CONFIG.names, config.names)
+        if (config.background) {
+          if (config.background.mode) BACKGROUND_CONFIG.mode = config.background.mode
+          if (config.background.preset) BACKGROUND_CONFIG.environment.preset = config.background.preset
+          if (config.background.color) BACKGROUND_CONFIG.static.color = config.background.color
+        }
+        if (config.agents) AGENT_CONFIG.customAgents = config.agents
+      })
+      .catch(() => {})
+  }, [])
+  
   useEffect(() => {
     // 如果配置了自定义 Agent 列表，直接使用
     if (AGENT_CONFIG.customAgents && Array.isArray(AGENT_CONFIG.customAgents)) {

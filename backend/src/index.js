@@ -244,6 +244,28 @@ app.get('/api/slack/status', (req, res) => {
   });
 });
 
+// 前端配置（Agent列表、头像、名称等）
+app.get('/api/config', (req, res) => {
+  const config = {
+    // Agent 列表（从环境变量或默认）
+    agents: process.env.AGENT_LIST ? JSON.parse(process.env.AGENT_LIST) : null,
+    
+    // Agent 头像映射
+    avatars: process.env.AGENT_AVATARS ? JSON.parse(process.env.AGENT_AVATARS) : {},
+    
+    // Agent 名称映射
+    names: process.env.AGENT_NAMES ? JSON.parse(process.env.AGENT_NAMES) : {},
+    
+    // 背景配置
+    background: {
+      mode: process.env.BACKGROUND_MODE || 'environment',
+      preset: process.env.BACKGROUND_PRESET || 'city',
+      color: process.env.BACKGROUND_COLOR || '#0f172a',
+    }
+  };
+  res.json(config);
+});
+
 // 模拟消息（测试用）
 app.post('/api/slack/simulate', (req, res) => {
   const { agent, action, data } = req.body;
