@@ -16,11 +16,8 @@ const config = {
   pollingInterval: 3000,
   listenUsers: process.env.SLACK_LISTEN_USERS ? process.env.SLACK_LISTEN_USERS.split(',') : null,
   ignoreBots: true,
-  filterKeywords: ['任务', 'agent', 'status', '状态', 'update', 'list'],
+  filterKeywords: null,  // 处理所有包含 action 的 JSON
 };
-
-// 忽略的动作类型（这些是 avatar 动作，不是系统命令）
-const IGNORE_ACTIONS = ['dance', 'wave', 'greet', 'jump', 'spin'];
 
 let pollingTimer = null;
 let lastTimestamp = null;
@@ -151,10 +148,6 @@ async function processMessages() {
       const contract = parseContract(msg.text);
       
       if (contract.valid) {
-        // 跳过忽略的 action（avatar 动作）
-        if (IGNORE_ACTIONS.includes(contract.action)) {
-          continue;
-        }
         console.log('📨 收到有效契约:', contract.action);
         messageCallback(contract, msg);
       }
