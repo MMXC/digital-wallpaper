@@ -13,9 +13,10 @@
  *   npm start
  */
 
-const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, dialog, shell, nativeImage } = require('electron');
 const path = require('path');
 const { spawn, exec } = require('child_process');
+const fs = require('fs');
 
 // 全局变量
 let mainWindow = null;
@@ -32,45 +33,56 @@ const CONFIG = {
   backendWsUrl: 'ws://localhost:18790'
 };
 
+// 创建默认托盘图标（16x16 像素）
+function createDefaultIcon() {
+  // 创建一个简单的 16x16 紫色方块图标
+  const size = 16;
+  const canvas = Buffer.alloc(size * size * 4);
+  
+  // 填充紫色 (#6366f1)
+  for (let i = 0; i < size * size; i++) {
+    canvas[i * 4] = 99;      // R
+    canvas[i * 4 + 1] = 102; // G
+    canvas[i * 4 + 2] = 241; // B
+    canvas[i * 4 + 3] = 255; // A
+  }
+  
+  return nativeImage.createFromBuffer(canvas, { width: size, height: size });
+}
+
 // ============ 创建主窗口 ============
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: '🎭 Digital Wallpaper - 数字壁纸',
+    title: 'Digital Wallpaper - 数字壁纸',
     icon: CONFIG.trayIconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
     },
-    show: false  // 启动时隐藏，等托盘创建后再显示
+    show: false
   });
 
-  // 加载前端页面
   mainWindow.loadURL(CONFIG.frontendUrl);
 
-  // 窗口准备好后显示
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    console.log('✅ 主窗口已显示');
+    console.log('Main window ready');
   });
 
-  // 最小化到托盘（而不是关闭）
   mainWindow.on('minimize', (event) => {
     event.preventDefault();
     mainWindow.hide();
-    console.log('📥 已最小化到托盘');
   });
 
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
       event.preventDefault();
       mainWindow.hide();
-      console.log('📥 关闭按钮 - 最小化到托盘');
     }
   });
 
-  // 打开外部链接
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
@@ -79,23 +91,28 @@ function createWindow() {
 
 // ============ 创建系统托盘 ============
 function createTray() {
-  // 使用默认图标或自定义图标
+  let trayIcon;
   const iconPath = path.join(__dirname, 'assets', 'icon.ico');
   
   try {
-    tray = new Tray(iconPath);
+    if (fs.existsSync(iconPath)) {
+      trayIcon = nativeImage.createFromPath(iconPath);
+      console.log('Loaded custom tray icon');
+    } else {
+      console.log('Using default tray icon');
+      trayIcon = createDefaultIcon();
+    }
   } catch (e) {
-    console.warn('⚠️ 托盘图标未找到，使用默认');
-    // 创建一个简单的托盘（如果图标不存在）
-    return;
+    console.warn('Icon load failed, using default:', e.message);
+    trayIcon = createDefaultIcon();
   }
 
-  tray.setToolTip('🎭 Digital Wallpaper - 数字壁纸');
+  tray = new Tray(trayIcon);
+  tray.setToolTip('Digital Wallpaper - 数字壁纸');
 
-  // 右键菜单
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: '🌐 打开主界面',
+      label: 'Open',
       click: () => {
         if (mainWindow) {
           mainWindow.show();
@@ -105,58 +122,21 @@ function createTray() {
     },
     { type: 'separator' },
     {
-      label: '⚙️ 设置 Slack Bot',
-      click: () => {
-        openSettings();
-      }
-    },
-    {
-      label: '▶️ 启动服务',
-      submenu: [
-        {
-          label: '启动 Backend',
-          click: () => startBackend()
-        },
-        {
-          label: '启动 Frontend',
-          click: () => startFrontend()
-        },
-        { type: 'separator' },
-        {
-          label: '启动全部服务',
-          click: () => startAllServices()
-        }
-      ]
-    },
-    {
-      label: '⏹️ 停止服务',
-      submenu: [
-        {
-          label: '停止 Backend',
-          click: () => stopBackend()
-        },
-        {
-          label: '停止 Frontend',
-          click: () => stopFrontend()
-        },
-        { type: 'separator' },
-        {
-          label: '停止全部服务',
-          click: () => stopAllServices()
-        }
-      ]
+      label: 'Settings',
+      click: () => openSettings()
     },
     { type: 'separator' },
     {
-      label: '🔄 重启服务',
-      click: () => {
-        stopAllServices();
-        setTimeout(() => startAllServices(), 1000);
-      }
+      label: 'Start All',
+      click: () => startAllServices()
+    },
+    {
+      label: 'Stop All',
+      click: () => stopAllServices()
     },
     { type: 'separator' },
     {
-      label: '❌ 退出',
+      label: 'Quit',
       click: () => {
         app.isQuitting = true;
         stopAllServices();
@@ -167,7 +147,6 @@ function createTray() {
 
   tray.setContextMenu(contextMenu);
 
-  // 双击打开主窗口
   tray.on('double-click', () => {
     if (mainWindow) {
       mainWindow.show();
@@ -175,13 +154,13 @@ function createTray() {
     }
   });
 
-  console.log('✅ 系统托盘已创建');
+  console.log('Tray created');
 }
 
 // ============ 服务管理 ============
 function startBackend() {
   if (backendProcess) {
-    console.log('⚠️ Backend 已在运行');
+    console.log('Backend already running');
     return;
   }
 
@@ -189,28 +168,29 @@ function startBackend() {
   backendProcess = spawn('npm', ['start'], {
     cwd: backendPath,
     shell: true,
-    detached: false
+    detached: false,
+    stdio: 'pipe'
   });
 
   backendProcess.stdout.on('data', (data) => {
-    console.log(`[Backend] ${data}`);
+    console.log('[Backend] ' + data);
   });
 
   backendProcess.stderr.on('data', (data) => {
-    console.error(`[Backend Error] ${data}`);
+    console.error('[Backend Error] ' + data);
   });
 
   backendProcess.on('close', (code) => {
-    console.log(`[Backend] 进程退出，code: ${code}`);
+    console.log('[Backend] exited: ' + code);
     backendProcess = null;
   });
 
-  console.log('✅ Backend 已启动');
+  console.log('Backend started');
 }
 
 function startFrontend() {
   if (frontendProcess) {
-    console.log('⚠️ Frontend 已在运行');
+    console.log('Frontend already running');
     return;
   }
 
@@ -218,23 +198,24 @@ function startFrontend() {
   frontendProcess = spawn('npm', ['start'], {
     cwd: frontendPath,
     shell: true,
-    detached: false
+    detached: false,
+    stdio: 'pipe'
   });
 
   frontendProcess.stdout.on('data', (data) => {
-    console.log(`[Frontend] ${data}`);
+    console.log('[Frontend] ' + data);
   });
 
   frontendProcess.stderr.on('data', (data) => {
-    console.error(`[Frontend Error] ${data}`);
+    console.error('[Frontend Error] ' + data);
   });
 
   frontendProcess.on('close', (code) => {
-    console.log(`[Frontend] 进程退出，code: ${code}`);
+    console.log('[Frontend] exited: ' + code);
     frontendProcess = null;
   });
 
-  console.log('✅ Frontend 已启动');
+  console.log('Frontend started');
 }
 
 function startAllServices() {
@@ -246,7 +227,7 @@ function stopBackend() {
   if (backendProcess) {
     backendProcess.kill();
     backendProcess = null;
-    console.log('⏹️ Backend 已停止');
+    console.log('Backend stopped');
   }
 }
 
@@ -254,7 +235,7 @@ function stopFrontend() {
   if (frontendProcess) {
     frontendProcess.kill();
     frontendProcess = null;
-    console.log('⏹️ Frontend 已停止');
+    console.log('Frontend stopped');
   }
 }
 
@@ -268,7 +249,7 @@ function openSettings() {
   const settingsWindow = new BrowserWindow({
     width: 600,
     height: 500,
-    title: '⚙️ 设置 - Slack Bot 配置',
+    title: 'Settings',
     parent: mainWindow,
     modal: true,
     resizable: false,
@@ -282,51 +263,24 @@ function openSettings() {
 }
 
 // ============ IPC 通信 ============
-ipcMain.handle('get-config', () => {
-  return CONFIG;
-});
-
-ipcMain.handle('start-backend', () => {
-  startBackend();
-  return { success: true };
-});
-
-ipcMain.handle('start-frontend', () => {
-  startFrontend();
-  return { success: true };
-});
-
-ipcMain.handle('stop-backend', () => {
-  stopBackend();
-  return { success: true };
-});
-
-ipcMain.handle('stop-frontend', () => {
-  stopFrontend();
-  return { success: true };
-});
-
-ipcMain.handle('open-folder', async (event, folderPath) => {
-  shell.openPath(folderPath);
-});
+ipcMain.handle('get-config', () => CONFIG);
+ipcMain.handle('start-backend', () => { startBackend(); return { success: true }; });
+ipcMain.handle('start-frontend', () => { startFrontend(); return { success: true }; });
+ipcMain.handle('stop-backend', () => { stopBackend(); return { success: true }; });
+ipcMain.handle('stop-frontend', () => { stopFrontend(); return { success: true }; });
+ipcMain.handle('open-folder', async (event, folderPath) => shell.openPath(folderPath));
 
 // ============ 应用生命周期 ============
 app.whenReady().then(() => {
-  console.log('='.repeat(50));
-  console.log('🎭 Digital Wallpaper 启动中...');
-  console.log('='.repeat(50));
-  
+  console.log('Digital Wallpaper starting...');
   createWindow();
   createTray();
-  
-  // 启动时自动启动服务
   setTimeout(() => startAllServices(), 1500);
-  
-  console.log('✅ 应用初始化完成');
+  console.log('Ready');
 });
 
 app.on('window-all-closed', () => {
-  // 不退出，保持托盘运行
+  // 不退出
 });
 
 app.on('activate', () => {
@@ -340,8 +294,7 @@ app.on('before-quit', () => {
   stopAllServices();
 });
 
-// 处理未捕获异常
 process.on('uncaughtException', (error) => {
-  console.error('❌ 未捕获异常:', error);
-  dialog.showErrorBox('错误', `发生错误: ${error.message}`);
+  console.error('Error:', error);
+  dialog.showErrorBox('Error', error.message);
 });
