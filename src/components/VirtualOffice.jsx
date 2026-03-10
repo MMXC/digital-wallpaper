@@ -565,10 +565,133 @@ function OfficeScene({ agents, onAgentClick, selectedAgent }) {
   )
 }
 
+// ============ 任务看板配置 ============
+const TASK_BOARD_CONFIG = {
+  enabled: true,  // 是否显示任务看板
+  position: 'top-right',  // 位置: 'top-right', 'top-left', 'bottom-right', 'bottom-left'
+  
+  // 任务列表（可从后端获取）
+  tasks: [
+    { id: 1, title: '调研技术方案', agent: '中书省', status: 'completed', priority: 'high' },
+    { id: 2, title: '原型开发', agent: '尚书省', status: 'in-progress', priority: 'high' },
+    { id: 3, title: '测试验证', agent: '门下省', status: 'pending', priority: 'medium' },
+    { id: 4, title: '文档整理', agent: '礼部', status: 'pending', priority: 'low' },
+  ]
+}
+
+// ============ 任务看板组件 ============
+function TaskBoard({ onTaskClick, selectedAgent }) {
+  const { tasks } = TASK_BOARD_CONFIG
+  
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed': return '#4ade80'
+      case 'in-progress': return '#facc15'
+      case 'pending': return '#6b7280'
+      default: return '#6b7280'
+    }
+  }
+  
+  const getPriorityIcon = (priority) => {
+    switch (priority) {
+      case 'high': return '🔴'
+      case 'medium': return '🟡'
+      case 'low': return '🟢'
+      default: return '⚪'
+    }
+  }
+  
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '16px',
+      right: '16px',
+      width: '280px',
+      maxHeight: '400px',
+      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9))',
+      border: '1px solid rgba(78, 204, 163, 0.3)',
+      borderRadius: '12px',
+      padding: '16px',
+      color: 'white',
+      fontFamily: 'system-ui, sans-serif',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+      backdropFilter: 'blur(10px)',
+      overflow: 'hidden',
+    }}>
+      {/* 全息效果标题 */}
+      <div style={{
+        fontSize: '14px',
+        fontWeight: 'bold',
+        marginBottom: '12px',
+        paddingBottom: '8px',
+        borderBottom: '1px solid rgba(78, 204, 163, 0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+      }}>
+        <span style={{ animation: 'pulse 2s infinite' }}>📋</span>
+        任务看板
+        <span style={{ marginLeft: 'auto', fontSize: '10px', opacity: 0.5 }}>3D全息投影</span>
+      </div>
+      
+      {/* 任务列表 */}
+      <div style={{ overflow: 'auto', maxHeight: '300px' }}>
+        {tasks.map(task => (
+          <div
+            key={task.id}
+            onClick={() => onTaskClick(task)}
+            style={{
+              padding: '10px 12px',
+              marginBottom: '8px',
+              background: selectedAgent?.name === task.agent ? 'rgba(78, 204, 163, 0.2)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${selectedAgent?.name === task.agent ? 'rgba(78, 204, 163, 0.5)' : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(78, 204, 163, 0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = selectedAgent?.name === task.agent ? 'rgba(78, 204, 163, 0.2)' : 'rgba(255,255,255,0.05)'}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span>{getPriorityIcon(task.priority)}</span>
+              <span style={{ flex: 1, fontWeight: 500, fontSize: '13px' }}>{task.title}</span>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: getStatusColor(task.status),
+                boxShadow: `0 0 8px ${getStatusColor(task.status)}`,
+              }} />
+            </div>
+            <div style={{ fontSize: '11px', opacity: 0.6, display: 'flex', justifyContent: 'space-between' }}>
+              <span>👤 {task.agent}</span>
+              <span>{task.status === 'completed' ? '✅ 完成' : task.status === 'in-progress' ? '🔄 进行中' : '⏳ 待处理'}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ============ 主组件 ============
 export default function VirtualOffice() {
   const { agents, loading, wsConnected } = useOpenClawStatus()
   const [selectedAgent, setSelectedAgent] = useState(null)
+  const [cameraTarget, setCameraTarget] = useState(null)
+  const canvasRef = useRef(null)
+  
+  // 处理任务点击：切换到对应的 Agent
+  const handleTaskClick = (task) => {
+    // 查找任务对应的 Agent
+    const agent = agents.find(a => a.name === task.agent || a.id === task.agent)
+    if (agent) {
+      setSelectedAgent(agent)
+      // 设置相机目标位置（会在 OrbitControls 中使用）
+      setCameraTarget(agent.id)
+      console.log('📷 视角切换到:', agent.name)
+    }
+  }
   
   // 计算统计数据
   const stats = {
