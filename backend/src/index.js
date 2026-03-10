@@ -24,6 +24,12 @@ const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(join(dirname(fileURLToPath(import.meta.url), '../public')));
+
+// 管理页面
+app.get('/admin', (req, res) => {
+  res.sendFile(join(dirname(fileURLToPath(import.meta.url)), '../public/admin.html'));
+});
 
 // ============ OpenClaw 状态获取 ============
 

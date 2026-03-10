@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字人壁纸 - 管理中心</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #fff; }
+    
+    .header { background: linear-gradient(135deg, #1e293b, #0f172a); padding: 20px 30px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 24px; background: linear-gradient(90deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .status { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    
+    .container { display: flex; min-height: calc(100vh - 70px); }
+    .sidebar { width: 240px; background: #1e293b; padding: 20px; border-right: 1px solid #334155; }
+    .nav-item { padding: 12px 16px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; transition: all 0.2s; }
+    .nav-item:hover { background: #334155; }
+    .nav-item.active { background: linear-gradient(90deg, rgba(139, 92, 246, 0.3), transparent); border-left: 3px solid #8b5cf6; }
+    .nav-item span { margin-right: 10px; }
+    
+    .main { flex: 1; padding: 30px; overflow-y: auto; }
+    .section { display: none; }
+    .section.active { display: block; }
+    
+    .card { background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #334155; }
+    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .card-title .icon { font-size: 24px; }
+    
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .resource-card { background: #0f172a; border-radius: 12px; padding: 16px; border: 1px solid #334155; cursor: pointer; transition: all 0.2s; }
+    .resource-card:hover { border-color: #8b5cf6; transform: translateY(-2px); }
+    .resource-card.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
+    .resource-icon { font-size: 48px; margin-bottom: 12px; }
+    .resource-name { font-weight: 600; margin-bottom: 4px; }
+    .resource-desc { font-size: 12px; color: #94a3b8; }
+    
+    .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4); }
+    .btn-secondary { background: #334155; color: white; }
+    .btn-danger { background: #dc2626; color: white; }
+    
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; margin-bottom: 8px; font-weight: 500; color: #94a3b8; }
+    .form-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 14px; }
+    .form-input:focus { outline: none; border-color: #8b5cf6; }
+    .form-select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 14px; }
+    
+    .preview { background: #000; border-radius: 12px; height: 300px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; overflow: hidden; position: relative; }
+    .preview iframe { width: 100%; height: 100%; border: none; }
+    .preview-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 4px 12px; border-radius: 4px; font-size: 12px; }
+    
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab { padding: 8px 16px; background: #1e293b; border-radius: 8px; cursor: pointer; border: 1px solid #334155; }
+    .tab.active { background: #8b5cf6; border-color: #8b5cf6; }
+    
+    .code-block { background: #0f172a; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; overflow-x: auto; white-space: pre; color: #a5b4fc; }
+    
+    .toast { position: fixed; bottom: 30px; right: 30px; background: #1e293b; padding: 16px 24px; border-radius: 12px; border: 1px solid #334155; animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #1e293b; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
+    .stat-value { font-size: 32px; font-weight: bold; background: linear-gradient(90deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-label { font-size: 14px; color: #94a3b8; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🏛️ 数字人壁纸 - 管理中心</h1>
+    <div class="status">
+      <div class="status-dot"></div>
+      <span>服务运行中</span>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="sidebar">
+      <div class="nav-item active" data-section="dashboard"><span>📊</span>仪表盘</div>
+      <div class="nav-item" data-section="preview"><span>🎬</span>实时预览</div>
+      <div class="nav-item" data-section="avatars"><span>👤</span>数字人</div>
+      <div class="nav-item" data-section="environments"><span>🌤️</span>天空盒</div>
+      <div class="nav-item" data-section="backgrounds"><span>🖼️</span>背景</div>
+      <div class="nav-item" data-section="effects"><span>✨</span>特效</div>
+      <div class="nav-item" data-section="contracts"><span>📜</span>契约协议</div>
+      <div class="nav-item" data-section="settings"><span>⚙️</span>设置</div>
+    </div>
+    
+    <div class="main">
+      <!-- 仪表盘 -->
+      <div class="section active" id="dashboard">
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-avatars">4</div>
+            <div class="stat-label">数字人</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-environments">11</div>
+            <div class="stat-label">天空盒</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-tasks">3</div>
+            <div class="stat-label">任务</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-effects">5</div>
+            <div class="stat-label">特效</div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-title"><span class="icon">📜</span>快速操作</div>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-primary" onclick="applyPreview()">应用预览</button>
+            <button class="btn btn-secondary" onclick="refreshData()">刷新数据</button>
+            <button class="btn btn-secondary" onclick="showHelp()">契约帮助</button>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-title"><span class="icon">📡</span>连接状态</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">Slack Bot</label>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="status-dot"></div>
+                <span>已连接</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">WebSocket</label>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="status-dot"></div>
+                <span>监听中</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 实时预览 -->
+      <div class="section" id="preview">
+        <div class="card">
+          <div class="card-title"><span class="icon">🎬</span>壁纸预览</div>
+          <div class="preview">
+            <iframe id="preview-frame" src="/" ></iframe>
+            <div class="preview-badge">实时预览</div>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-primary" onclick="refreshPreview()">刷新</button>
+            <button class="btn btn-secondary" onclick="openInBrowser()">新窗口打开</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 数字人 -->
+      <div class="section" id="avatars">
+        <div class="card">
+          <div class="card-title"><span class="icon">👤</span>数字人管理</div>
+          <div class="grid" id="avatars-grid"></div>
+        </div>
+      </div>
+      
+      <!-- 天空盒 -->
+      <div class="section" id="environments">
+        <div class="card">
+          <div class="card-title"><span class="icon">🌤️</span>天空盒资源</div>
+          <div class="grid" id="environments-grid"></div>
+        </div>
+      </div>
+      
+      <!-- 背景 -->
+      <div class="section" id="backgrounds">
+        <div class="card">
+          <div class="card-title"><span class="icon">🖼️</span>背景资源</div>
+          <div class="grid" id="backgrounds-grid"></div>
+        </div>
+      </div>
+      
+      <!-- 特效 -->
+      <div class="section" id="effects">
+        <div class="card">
+          <div class="card-title"><span class="icon">✨</span>特效资源</div>
+          <div class="grid" id="effects-grid"></div>
+        </div>
+      </div>
+      
+      <!-- 契约协议 -->
+      <div class="section" id="contracts">
+        <div class="card">
+          <div class="card-title"><span class="icon">📜</span>契约协议说明</div>
+          <div class="tabs">
+            <div class="tab active" onclick="showContractTab('actions')">支持的命令</div>
+            <div class="tab" onclick="showContractTab('schema')">完整Schema</div>
+            <div class="tab" onclick="showContractTab('example')">使用示例</div>
+          </div>
+          <div id="contract-content" class="code-block"></div>
+        </div>
+      </div>
+      
+      <!-- 设置 -->
+      <div class="section" id="settings">
+        <div class="card">
+          <div class="card-title"><span class="icon">⚙️</span>基本设置</div>
+          <div class="form-group">
+            <label class="form-label">端口</label>
+            <input type="number" class="form-input" value="3001" id="setting-port">
+          </div>
+          <div class="form-group">
+            <label class="form-label">自动保存</label>
+            <select class="form-select" id="setting-autosave">
+              <option value="true">启用</option>
+              <option value="false">禁用</option>
+            </select>
+          </div>
+          <button class="btn btn-primary">保存设置</button>
+        </div>
+        
+        <div class="card">
+          <div class="card-title"><span class="icon">📁</span>资源目录</div>
+          <div class="form-group">
+            <label class="form-label">资源文件夹</label>
+            <input type="text" class="form-input" value="./resources" id="setting-resources">
+          </div>
+          <button class="btn btn-secondary">打开文件夹</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="toast" id="toast" style="display: none;"></div>
+
+  <script>
+    // 数据
+    const avatars = [
+      { id: 'taizi', name: '太子', role: '项目总控', status: 'idle', color: '#8b5cf6' },
+      { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'busy', color: '#3b82f6' },
+      { id: 'menxia', name: '门下省', role: '审核审议', status: 'idle', color: '#10b981' },
+      { id: 'shangshu', name: '尚书省', role: '执行派发', status: 'idle', color: '#f59e0b' },
+    ];
+    
+    const environments = [
+      { id: 'city', name: '城市', icon: '🏙️', desc: '现代城市景观' },
+      { id: 'sunset', name: '日落', icon: '🌅', desc: '暖色调日落' },
+      { id: 'night', name: '夜晚', icon: '🌃', desc: '城市夜景' },
+      { id: 'forest', name: '森林', icon: '🌲', desc: '自然森林' },
+      { id: 'dawn', name: '黎明', icon: '🌅', desc: '清晨日出' },
+      { id: 'studio', name: '工作室', icon: '🎬', desc: '专业摄影棚' },
+      { id: 'park', name: '公园', icon: '🌳', desc: '郊外公园' },
+      { id: 'lobby', name: '大堂', icon: '🏨', desc: '酒店大堂' },
+      { id: 'apartment', name: '公寓', icon: '🏢', desc: '现代公寓' },
+      { id: 'parking', name: '停车场', icon: '🅿️', desc: '室内停车场' },
+      { id: 'footballfield', name: '足球场', icon: '⚽', desc: '足球场' },
+    ];
+    
+    const backgrounds = [
+      { id: 'gradient-blue', name: '渐变蓝', icon: '🔵', desc: '深蓝渐变' },
+      { id: 'gradient-purple', name: '渐变紫', icon: '🟣', desc: '紫色渐变' },
+      { id: 'static-black', name: '纯黑', icon: '⚫', desc: '纯黑背景' },
+    ];
+    
+    const effects = [
+      { id: 'confetti', name: '彩带', icon: '🎊', desc: '庆祝彩带' },
+      { id: 'rain', name: '雨', icon: '🌧️', desc: '雨滴效果' },
+      { id: 'snow', name: '雪', icon: '❄️', desc: '雪花飘落' },
+      { id: 'fireworks', name: '烟花', icon: '🎆', desc: '烟花表演' },
+      { id: 'sparkle', name: '闪光', icon: '✨', desc: '闪光特效' },
+    ];
+    
+    const contracts = {
+      actions: `支持的命令:
+agent_list_update   - 更新数字人列表
+task_list_update   - 更新任务列表  
+environment_update - 更新天空盒
+background_update - 更新背景
+camera_update     - 更新相机
+effect_update     - 播放特效
+ui_update         - 更新UI配置
+avatar_action     - 数字人动作`,
+      schema: `完整配置Schema请查看:
+GET /api/protocols`,
+      example: `发送JSON消息到Slack频道:
+
+{"action": "environment_update", "data": {"preset": "sunset"}}
+
+{"action": "task_list_update", "data": {"tasks": [{"id":1,"title":"新任务","agent":"尚书省","status":"in-progress","priority":"high"}]}}`
+    };
+    
+    // 导航
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById(item.dataset.section).classList.add('active');
+      });
+    });
+    
+    // 渲染资源
+    function renderResources() {
+      document.getElementById('avatars-grid').innerHTML = avatars.map(a => `
+        <div class="resource-card" onclick="selectResource('avatars', '${a.id}')">
+          <div class="resource-icon">👤</div>
+          <div class="resource-name">${a.name}</div>
+          <div class="resource-desc">${a.role}</div>
+        </div>
+      `).join('');
+      
+      document.getElementById('environments-grid').innerHTML = environments.map(e => `
+        <div class="resource-card" onclick="selectResource('environments', '${e.id}')">
+          <div class="resource-icon">${e.icon}</div>
+          <div class="resource-name">${e.name}</div>
+          <div class="resource-desc">${e.desc}</div>
+        </div>
+      `).join('');
+      
+      document.getElementById('backgrounds-grid').innerHTML = backgrounds.map(b => `
+        <div class="resource-card" onclick="selectResource('backgrounds', '${b.id}')">
+          <div class="resource-icon">${b.icon}</div>
+          <div class="resource-name">${b.name}</div>
+          <div class="resource-desc">${b.desc}</div>
+        </div>
+      `).join('');
+      
+      document.getElementById('effects-grid').innerHTML = effects.map(e => `
+        <div class="resource-card" onclick="selectResource('effects', '${e.id}')">
+          <div class="resource-icon">${e.icon}</div>
+          <div class="resource-name">${e.name}</div>
+          <div class="resource-desc">${e.desc}</div>
+        </div>
+      `).join('');
+      
+      document.getElementById('stat-avatars').textContent = avatars.length;
+      document.getElementById('stat-environments').textContent = environments.length;
+      document.getElementById('stat-effects').textContent = effects.length;
+    }
+    
+    // 选择资源
+    function selectResource(type, id) {
+      showToast(`已选择 ${type}: ${id}`);
+    }
+    
+    // 契约Tab
+    function showContractTab(tab) {
+      document.querySelectorAll('#contracts .tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('contract-content').textContent = contracts[tab];
+    }
+    
+    // 显示Toast
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    }
+    
+    // 刷新数据
+    async function refreshData() {
+      showToast('刷新数据...');
+      try {
+        const res = await fetch('/api/config');
+        const data = await res.json();
+        showToast('数据已更新');
+      } catch(e) {
+        showToast('刷新失败: ' + e.message);
+      }
+    }
+    
+    // 刷新预览
+    function refreshPreview() {
+      document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
+      showToast('预览已刷新');
+    }
+    
+    // 新窗口打开
+    function openInBrowser() {
+      window.open('/', '_blank');
+    }
+    
+    // 显示帮助
+    async function showHelp() {
+      try {
+        const res = await fetch('/api/protocols/help');
+        const text = await res.text();
+        document.getElementById('contract-content').textContent = text;
+      } catch(e) {
+        showToast('获取帮助失败');
+      }
+    }
+    
+    // 初始化
+    renderResources();
+    showContractTab('actions');
+  </script>
+</body>
+</html>
