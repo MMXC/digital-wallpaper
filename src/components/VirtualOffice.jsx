@@ -568,17 +568,93 @@ function OfficeScene({ agents, onAgentClick, selectedAgent }) {
 
 // ============ 任务看板配置 ============
 const TASK_BOARD_CONFIG = {
-  enabled: true,  // 是否显示任务看板
-  position: 'top-right',  // 位置: 'top-right', 'top-left', 'bottom-right', 'bottom-left'
+  enabled: true,
+  position: 'top-right',
+  tasks: [],
+  maxTasks: 6,  // 最多显示任务数
+}
+
+// ============ 圣旨展示组件 ============
+function ImperialEdict({ task, onComplete }) {
+  const [displayText, setDisplayText] = useState('')
+  const [visible, setVisible] = useState(true)
+  const fullText = `📜 奉天承运，皇帝诏曰：\n\n${task.title}\n\n负责：${task.agent}\n状态：${task.status === 'completed' ? '已完成' : task.status === 'in-progress' ? '进行中' : '待处理'}`
   
-  // 默认任务（会被后端数据覆盖）
-  tasks: []
+  useEffect(() => {
+    let i = 0
+    const timer = setInterval(() => {
+      if (i < fullText.length) {
+        setDisplayText(fullText.slice(0, i + 1))
+        i++
+      } else {
+        clearInterval(timer)
+        // 2秒后消失
+        setTimeout(() => {
+          setVisible(false)
+          onComplete?.()
+        }, 2000)
+      }
+    }, 50)
+    return () => clearInterval(timer)
+  }, [])
+  
+  if (!visible) return null
+  
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'rgba(0,0,0,0.7)',
+      zIndex: 1000,
+      animation: 'fadeIn 0.3s ease',
+    }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #8B4513 0%, #D2691E 50%, #FFD700 100%)',
+        border: '4px solid #FFD700',
+        borderRadius: '8px',
+        padding: '40px 60px',
+        maxWidth: '600px',
+        boxShadow: '0 0 60px rgba(255, 215, 0, 0.6), inset 0 0 30px rgba(139, 69, 19, 0.5)',
+        animation: 'pulse 2s infinite',
+      }}>
+        <pre style={{
+          fontFamily: '"KaiTi", "STKaiti", serif',
+          fontSize: '24px',
+          color: '#2C1810',
+          whiteSpace: 'pre-wrap',
+          textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+          margin: 0,
+        }}>{displayText}</pre>
+        <div style={{ textAlign: 'center', marginTop: '20px', opacity: 0.6, fontSize: '14px' }}>
+          {displayText.length < fullText.length ? '✍️ 宣读中...' : '📜 钦此'}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ============ 任务看板组件 ============
 function TaskBoard({ onTaskClick, selectedAgent, tasks = [] }) {
-  // 使用传入的任务或默认
   const taskList = tasks.length > 0 ? tasks : TASK_BOARD_CONFIG.tasks
+  const [showEdict, setShowEdict] = useState(null)
+  const [recentTask, setRecentTask] = useState(null)
+  
+  // 监听新任务
+  useEffect(() => {
+    if (tasks.length > 0 && TASK_BOARD_CONFIG.tasks.length > 0) {
+      const latestTask = tasks[0]
+      const oldTasks = TASK_BOARD_CONFIG.tasks
+      if (oldTasks.length === 0 || latestTask.id !== oldTasks[0].id) {
+        // 新任务，显示圣旨
+        setRecentTask(latestTask)
+        setShowEdict(latestTask)
+      }
+    }
+    TASK_BOARD_CONFIG.tasks = tasks
+  }, [tasks])
   
   const getStatusColor = (status) => {
     switch (status) {
@@ -599,75 +675,155 @@ function TaskBoard({ onTaskClick, selectedAgent, tasks = [] }) {
   }
   
   return (
-    <div style={{
-      position: 'absolute',
-      top: '16px',
-      right: '16px',
-      width: '280px',
-      maxHeight: '400px',
-      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9))',
-      border: '1px solid rgba(78, 204, 163, 0.3)',
-      borderRadius: '12px',
-      padding: '16px',
-      color: 'white',
-      fontFamily: 'system-ui, sans-serif',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
-      backdropFilter: 'blur(10px)',
-      overflow: 'hidden',
-    }}>
-      {/* 全息效果标题 */}
+    <>
+      {showEdict && (
+        <ImperialEdict 
+          task={showEdict} 
+          onComplete={() => setShowEdict(null)} 
+        />
+      )}
+      
       <div style={{
-        fontSize: '14px',
-        fontWeight: 'bold',
-        marginBottom: '12px',
-        paddingBottom: '8px',
-        borderBottom: '1px solid rgba(78, 204, 163, 0.3)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
+        position: 'absolute',
+        top: '16px',
+        right: '16px',
+        width: '300px',
+        maxHeight: '450px',
+        background: 'linear-gradient(180deg, rgba(20, 30, 48, 0.95) 0%, rgba(36, 59, 85, 0.9) 100%)',
+        border: '1px solid rgba(0, 255, 255, 0.3)',
+        borderRadius: '16px',
+        padding: '20px',
+        color: 'white',
+        fontFamily: 'system-ui, sans-serif',
+        boxShadow: '0 0 40px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(10px)',
+        overflow: 'hidden',
       }}>
-        <span style={{ animation: 'pulse 2s infinite' }}>📋</span>
-        任务看板
-        <span style={{ marginLeft: 'auto', fontSize: '10px', opacity: 0.5 }}>3D全息投影</span>
+        {/* 全息效果标题 */}
+        <div style={{
+          fontSize: '16px',
+          fontWeight: 'bold',
+          marginBottom: '16px',
+          paddingBottom: '12px',
+          borderBottom: '2px solid rgba(0, 255, 255, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          textShadow: '0 0 10px rgba(0, 255, 255, 0.8)',
+        }}>
+          <span style={{ animation: 'pulse 2s infinite' }}>📋</span>
+          <span style={{ color: '#00ffff' }}>任务指挥中心</span>
+          <span style={{ marginLeft: 'auto', fontSize: '11px', opacity: 0.6, background: 'rgba(0,255,255,0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+            3D全息投影
+          </span>
+        </div>
+        
+        {/* 活跃任务指示器 */}
+        <div style={{ marginBottom: '12px', display: 'flex', gap: '8px' }}>
+          <div style={{ 
+            flex: 1, 
+            height: '4px', 
+            background: taskList.filter(t => t.status === 'in-progress').length > 0 
+              ? 'linear-gradient(90deg, #00ffff, #00ff00)' 
+              : 'rgba(255,255,255,0.1)',
+            borderRadius: '2px',
+            boxShadow: taskList.filter(t => t.status === 'in-progress').length > 0 ? '0 0 10px #00ffff' : 'none',
+          }} />
+        </div>
+        
+        {/* 任务列表 */}
+        <div style={{ overflow: 'auto', maxHeight: '340px' }}>
+          {taskList.slice(0, TASK_BOARD_CONFIG.maxTasks).map((task, idx) => (
+            <div
+              key={task.id}
+              onClick={() => onTaskClick(task)}
+              style={{
+                padding: '14px 16px',
+                marginBottom: '10px',
+                background: selectedAgent?.name === task.agent 
+                  ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 255, 150, 0.15))' 
+                  : 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))',
+                border: `1px solid ${selectedAgent?.name === task.agent ? 'rgba(0, 255, 255, 0.6)' : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                overflow: 'hidden',
+                animation: idx === 0 ? 'slideIn 0.3s ease' : undefined,
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(0, 255, 255, 0.25), rgba(0, 255, 150, 0.2))'
+                e.currentTarget.style.transform = 'translateX(4px)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = selectedAgent?.name === task.agent 
+                  ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 255, 150, 0.15))'
+                  : 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'
+                e.currentTarget.style.transform = 'translateX(0)'
+              }}
+            >
+              {/* 光效 */}
+              {task.status === 'in-progress' && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0,
+                  height: '2px',
+                  background: 'linear-gradient(90deg, transparent, #00ffff, transparent)',
+                  animation: 'scan 2s linear infinite',
+                }} />
+              )}
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '14px' }}>{getPriorityIcon(task.priority)}</span>
+                <span style={{ flex: 1, fontWeight: 600, fontSize: '14px', color: '#fff' }}>{task.title}</span>
+                <span style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: getStatusColor(task.status),
+                  boxShadow: `0 0 12px ${getStatusColor(task.status)}`,
+                  animation: task.status === 'in-progress' ? 'blink 1s infinite' : 'none',
+                }} />
+              </div>
+              <div style={{ fontSize: '12px', opacity: 0.7, display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.7)' }}>
+                <span>👤 {task.agent}</span>
+                <span style={{ 
+                  color: task.status === 'completed' ? '#4ade80' : task.status === 'in-progress' ? '#00ffff' : 'rgba(255,255,255,0.5)',
+                  textShadow: task.status === 'in-progress' ? '0 0 8px #00ffff' : 'none',
+                }}>
+                  {task.status === 'completed' ? '✅ 完成' : task.status === 'in-progress' ? '🔄 进行中' : '⏳ 待处理'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {taskList.length > TASK_BOARD_CONFIG.maxTasks && (
+          <div style={{ textAlign: 'center', padding: '8px', fontSize: '12px', opacity: 0.5 }}>
+            还有 {taskList.length - TASK_BOARD_CONFIG.maxTasks} 个任务...
+          </div>
+        )}
       </div>
       
-      {/* 任务列表 */}
-      <div style={{ overflow: 'auto', maxHeight: '300px' }}>
-        {tasks.map(task => (
-          <div
-            key={task.id}
-            onClick={() => onTaskClick(task)}
-            style={{
-              padding: '10px 12px',
-              marginBottom: '8px',
-              background: selectedAgent?.name === task.agent ? 'rgba(78, 204, 163, 0.2)' : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${selectedAgent?.name === task.agent ? 'rgba(78, 204, 163, 0.5)' : 'rgba(255,255,255,0.1)'}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(78, 204, 163, 0.15)'}
-            onMouseLeave={e => e.currentTarget.style.background = selectedAgent?.name === task.agent ? 'rgba(78, 204, 163, 0.2)' : 'rgba(255,255,255,0.05)'}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span>{getPriorityIcon(task.priority)}</span>
-              <span style={{ flex: 1, fontWeight: 500, fontSize: '13px' }}>{task.title}</span>
-              <span style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: getStatusColor(task.status),
-                boxShadow: `0 0 8px ${getStatusColor(task.status)}`,
-              }} />
-            </div>
-            <div style={{ fontSize: '11px', opacity: 0.6, display: 'flex', justifyContent: 'space-between' }}>
-              <span>👤 {task.agent}</span>
-              <span>{task.status === 'completed' ? '✅ 完成' : task.status === 'in-progress' ? '🔄 进行中' : '⏳ 待处理'}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+      <style>{`
+        @keyframes scan {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+    </>
   )
 }
 
