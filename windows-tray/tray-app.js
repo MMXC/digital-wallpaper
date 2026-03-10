@@ -47,38 +47,24 @@ function createDefaultIcon() {
   return nativeImage.createFromBuffer(canvas, { width: size, height: size });
 }
 
-// ============ 创建主窗口 ============
+// ============ 创建主窗口 (Admin 设置页面) ============
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    title: 'Digital Wallpaper - Digital Avatar',
+    width: 800,
+    height: 700,
+    title: 'Digital Wallpaper - Admin',
     icon: CONFIG.trayIconPath,
     webPreferences: {
-      nodeIntegration: false,
+      nodeIntegration: true,
       contextIsolation: true
     },
-    show: false
+    show: true
   });
 
-  // 等待 frontend 准备好后再加载
-  const checkFrontend = () => {
-    const http = require('http');
-    const req = http.get(CONFIG.frontendUrl, (res) => {
-      if (res.statusCode === 200) {
-        mainWindow.loadURL(CONFIG.frontendUrl);
-        console.log('Frontend loaded');
-      } else {
-        setTimeout(checkFrontend, 1000);
-      }
-    });
-    req.on('error', () => {
-      setTimeout(checkFrontend, 1000);
-    });
-  };
-  
-  // 延迟检查，让 frontend 有时间启动
-  setTimeout(checkFrontend, 3000);
+  // 加载本地 admin 设置页面
+  mainWindow.loadFile(path.join(__dirname, 'settings.html'));
+  mainWindow.setMenu(null);
+  console.log('Admin window ready');
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
