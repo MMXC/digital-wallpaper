@@ -97,29 +97,24 @@ function useWebSocket(onMessage) {
 }
 
 // ============ OpenClaw 状态获取 Hook ============
-function useOpenClawStatus() {
+function useOpenClawStatus(onTaskUpdate) {
   const [agents, setAgents] = useState([])
   const [loading, setLoading] = useState(true)
   
-  // 处理 WebSocket 消息
   const handleWsMessage = (data) => {
     if (data.type === 'connected') {
       console.log('✅ WebSocket 连接成功')
       return
     }
     
-    if (data.type === 'agent_update' && data.agent && data.data) {
-      // 更新对应 Agent 的状态
-      setAgents(prev => prev.map(agent => {
-        if (agent.id === data.agent) {
-          return {
-            ...agent,
-            ...data.data,
-            lastUpdate: data.timestamp
-          }
-        }
-        return agent
-      }))
+    if (data.type === 'agent_update' && data.agents) {
+      setAgents(data.agents)
+    }
+    
+    if (data.type === 'task_update' && data.tasks) {
+      console.log('📋 收到任务更新:', data.tasks)
+      TASK_BOARD_CONFIG.tasks = data.tasks
+      onTaskUpdate?.(data.tasks)
     }
   }
   
@@ -637,10 +632,8 @@ function ImperialEdict({ task, onComplete }) {
 }
 
 // ============ 任务看板组件 ============
-function TaskBoard({ onTaskClick, selectedAgent, tasks = [] }) {
+function TaskBoard({ onTaskClick, selectedAgent, tasks = [], showEdict, onEdictComplete }) {
   const taskList = tasks.length > 0 ? tasks : TASK_BOARD_CONFIG.tasks
-  const [showEdict, setShowEdict] = useState(null)
-  const [recentTask, setRecentTask] = useState(null)
   
   // 监听新任务
   useEffect(() => {
@@ -679,7 +672,10 @@ function TaskBoard({ onTaskClick, selectedAgent, tasks = [] }) {
       {showEdict && (
         <ImperialEdict 
           task={showEdict} 
-          onComplete={() => setShowEdict(null)} 
+          onComplete={() => {
+            setShowEdict(null)
+            onEdictComplete?.()
+          }} 
         />
       )}
       
@@ -829,10 +825,24 @@ function TaskBoard({ onTaskClick, selectedAgent, tasks = [] }) {
 
 // ============ 主组件 ============
 export default function VirtualOffice() {
-  const { agents, loading, wsConnected } = useOpenClawStatus()
   const [selectedAgent, setSelectedAgent] = useState(null)
   const [cameraTarget, setCameraTarget] = useState(null)
+  const [showEdict, setShowEdict] = useState(null)
   const canvasRef = useRef(null)
+  
+  // 处理新任务（触发圣旨动画）
+  const handleNewTask = (tasks) => {
+    if (tasks && tasks.length > 0) {
+      const latestTask = tasks[0]
+      // 检查是否是新任务
+      const existingIds = TASK_BOARD_CONFIG.tasks.map(t => t.id)
+      if (!existingIds.includes(latestTask.id) || TASK_BOARD_CONFIG.tasks.length === 0) {
+        setShowEdict(latestTask)
+      }
+    }
+  }
+  
+  const { agents, loading, wsConnected } = useOpenClawStatus(handleNewTask)
   
   // 处理任务点击：切换到对应的 Agent
   const handleTaskClick = (task) => {
@@ -956,6 +966,8 @@ export default function VirtualOffice() {
           onTaskClick={handleTaskClick} 
           selectedAgent={selectedAgent}
           tasks={TASK_BOARD_CONFIG.tasks}
+          showEdict={showEdict}
+          onEdictComplete={() => setShowEdict(null)}
         />
       )}
       
