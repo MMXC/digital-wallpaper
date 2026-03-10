@@ -36,8 +36,20 @@ if not exist "wallpaper-frontend" (
 echo 📦 安装依赖 & 构建...
 echo.
 
+REM 安装根目录依赖（vite等）
+echo [1/4] 安装根目录依赖...
+cd /d "%~dp0"
+call npm install
+if %errorlevel% neq 0 (
+    echo ❌ 根目录依赖安装失败
+    pause
+    exit /b 1
+)
+echo ✅ 根目录依赖安装完成
+echo.
+
 REM 安装 backend 依赖
-echo [1/3] 安装 Backend 依赖...
+echo [2/4] 安装 Backend 依赖...
 cd /d "%~dp0backend"
 call npm install
 if %errorlevel% neq 0 (
@@ -49,7 +61,7 @@ echo ✅ Backend 依赖安装完成
 echo.
 
 REM 构建前端
-echo [2/3] 构建 Frontend...
+echo [3/4] 构建 Frontend...
 cd /d "%~dp0"
 call npm run build
 if %errorlevel% neq 0 (
@@ -61,7 +73,7 @@ echo ✅ Frontend 构建完成
 echo.
 
 REM 提交构建结果（仅首次或更新时）
-echo [3/3] 检查更新...
+echo [4/4] 检查更新...
 cd /d "%~dp0"
 git add wallpaper-frontend/static/
 git diff --cached --quiet
