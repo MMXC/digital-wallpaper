@@ -9,6 +9,9 @@ import { WebClient } from '@slack/web-api';
 let slackClient = null;
 
 // 配置
+// 确保 dotenv 已加载
+import 'dotenv/config';
+
 const config = {
   token: process.env.SLACK_BOT_TOKEN || '',
   channelId: process.env.SLACK_CHANNEL_ID || 'C081L0VCKL4', // 默认频道
