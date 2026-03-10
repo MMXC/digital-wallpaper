@@ -1,0 +1,10 @@
+{
+  "agents": null,
+  "avatars": {},
+  "names": {},
+  "background": {
+    "mode": "environment",
+    "preset": "city",
+    "color": "#0f172a"
+  }
+}

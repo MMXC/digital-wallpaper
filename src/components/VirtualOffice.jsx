@@ -126,11 +126,14 @@ function useOpenClawStatus() {
   // 使用 WebSocket
   const { connected } = useWebSocket(handleWsMessage)
   
-  // 从后端获取配置
+  // 从后端获取配置（优先）或本地 config.json
   useEffect(() => {
-    fetch('http://localhost:3001/api/config', { signal: AbortSignal.timeout(2000) })
-      .then(res => res.json())
+    // 优先尝试从后端获取，否则用本地 config.json
+    fetch('http://localhost:3001/api/config', { signal: AbortSignal.timeout(1000) })
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .catch(() => fetch('/config.json', { signal: AbortSignal.timeout(1000) }).then(res => res.ok ? res.json() : Promise.reject()))
       .then(config => {
+        if (!config) return
         if (config.avatars) Object.assign(AGENT_CONFIG.avatars, config.avatars)
         if (config.names) Object.assign(AGENT_CONFIG.names, config.names)
         if (config.background) {
