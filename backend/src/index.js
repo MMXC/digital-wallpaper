@@ -13,6 +13,7 @@ import { createServer } from 'http';
 
 // 导入 Slack 和 WebSocket 模块
 import { initSlackClient, onMessage, startPolling, stopPolling, simulateMessage, slackConfig } from './slack.js';
+import { getProtocols, generateHelpText } from './protocols.js';
 import { initWebSocketServer, broadcastToAgent, broadcast, getClientCount } from './websocket.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,7 +35,7 @@ function getConfiguredAgents() {
   if (dynamicAgents && Array.isArray(dynamicAgents) && dynamicAgents.length > 0) {
     return dynamicAgents;
   }
-  
+
   if (process.env.AGENT_LIST) {
     try {
       let jsonStr = process.env.AGENT_LIST
@@ -73,10 +74,10 @@ function parseJsonEnv(key) {
 app.get('/api/agents', async (req, res) => {
   try {
     console.log('📡 收到 Agent 状态请求');
-    
+
     // 从环境变量获取配置
     const configuredAgents = getConfiguredAgents();
-    
+
     let agents;
     if (configuredAgents && Array.isArray(configuredAgents) && configuredAgents.length > 0) {
       agents = configuredAgents;
@@ -96,7 +97,7 @@ app.get('/api/agents', async (req, res) => {
       ];
       console.log('📋 使用默认虚拟办公场景 Agent');
     }
-    
+
     res.json(agents);
   } catch (error) {
     console.error('❌ 获取 Agent 状态失败:', error);
@@ -106,12 +107,25 @@ app.get('/api/agents', async (req, res) => {
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'digital-wallpaper-api',
     wsClients: getClientCount()
   });
+});
+
+// 契约协议说明
+app.get('/api/protocols', (req, res) => {
+  res.json({
+    name: '数字人壁纸契约协议',
+    version: '1.0.0',
+    protocols: getProtocols()
+  });
+});
+
+app.get('/api/protocols/help', (req, res) => {
+  res.type('text/plain').send(generateHelpText());
 });
 
 // Slack 状态
@@ -128,23 +142,23 @@ app.get('/api/config', (req, res) => {
   // 优先使用动态数据，否则用环境变量
   const agents = (dynamicAgents && dynamicAgents.length > 0) ? dynamicAgents : (parseJsonEnv('AGENT_LIST') || null);
   const tasks = (dynamicTasks && dynamicTasks.length > 0) ? dynamicTasks : null;
-  
+
   const config = {
     // WebSocket 地址
     wsUrl: process.env.WS_URL || 'ws://localhost:3001',
-    
+
     // Agent 列表（优先动态）
     agents: agents,
-    
+
     // Agent 头像映射
     avatars: parseJsonEnv('AGENT_AVATARS') || {},
-    
+
     // Agent 名称映射
     names: parseJsonEnv('AGENT_NAMES') || {},
-    
+
     // 任务列表（优先动态）
     tasks: tasks,
-    
+
     // 背景配置（优先动态）
     background: dynamicBackground || {
       mode: process.env.BACKGROUND_MODE || 'environment',
@@ -158,12 +172,12 @@ app.get('/api/config', (req, res) => {
 // 模拟消息（测试用）
 app.post('/api/slack/simulate', (req, res) => {
   const { agent, action, data } = req.body;
-  
+
   if (!agent || !action) {
     res.status(400).json({ error: '缺少必需参数: agent, action' });
     return;
   }
-  
+
   simulateMessage({ agent, action, data: data || {} });
   res.json({ success: true, message: '模拟消息已发送' });
 });
@@ -193,7 +207,7 @@ let dynamicBackground = null;
 // 契约处理函数
 const handleContract = (contract, msg) => {
   console.log('📨 收到 Slack 契约:', contract.action);
-  
+
   switch (contract.action) {
     case 'agent_list_update':
       if (contract.data && contract.data.agents) {
@@ -202,7 +216,7 @@ const handleContract = (contract, msg) => {
         broadcast({ type: 'agent_update', agents: dynamicAgents });
       }
       break;
-      
+
     case 'task_list_update':
       // 更新任务列表
       if (contract.data && contract.data.tasks) {
@@ -211,7 +225,7 @@ const handleContract = (contract, msg) => {
         broadcast({ type: 'task_update', tasks: dynamicTasks });
       }
       break;
-      
+
     case 'status_update':
       if (contract.agent) {
         broadcastToAgent(contract.agent, { action: 'status_update', data: contract.data });
