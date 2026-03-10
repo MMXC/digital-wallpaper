@@ -794,6 +794,15 @@ export default function VirtualOffice() {
         </div>
       </div>
       
+      {/* 任务看板 */}
+      {TASK_BOARD_CONFIG.enabled && (
+        <TaskBoard 
+          onTaskClick={handleTaskClick} 
+          selectedAgent={selectedAgent}
+          tasks={TASK_BOARD_CONFIG.tasks}
+        />
+      )}
+      
       {/* Agent 详情弹窗 */}
       {selectedAgent && (
         <div style={{
