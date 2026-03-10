@@ -13,7 +13,7 @@ import { createServer } from 'http';
 
 // 导入 Slack 和 WebSocket 模块
 import { initSlackClient, onMessage, startPolling, stopPolling, simulateMessage, slackConfig } from './slack.js';
-import { initWebSocketServer, broadcastToAgent, getClientCount } from './websocket.js';
+import { initWebSocketServer, broadcastToAgent, broadcast, getClientCount } from './websocket.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
