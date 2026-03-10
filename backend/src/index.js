@@ -32,12 +32,34 @@ app.use(express.json());
 function getConfiguredAgents() {
   if (process.env.AGENT_LIST) {
     try {
-      return JSON.parse(process.env.AGENT_LIST);
+      // 处理 Windows 环境变量引号问题
+      let jsonStr = process.env.AGENT_LIST.trim();
+      if (jsonStr.startsWith('"') && jsonStr.endsWith('"')) {
+        jsonStr = jsonStr.slice(1, -1);
+      }
+      return JSON.parse(jsonStr);
     } catch (e) {
-      console.error('AGENT_LIST 解析失败:', e);
+      console.error('AGENT_LIST 解析失败:', e.message);
+      console.error('请检查 .env 文件中的 AGENT_LIST 格式');
+      return null;
     }
   }
   return null;
+}
+
+// 安全解析 JSON 环境变量
+function parseJsonEnv(key) {
+  if (!process.env[key]) return null;
+  try {
+    let jsonStr = process.env[key].trim();
+    if (jsonStr.startsWith('"') && jsonStr.endsWith('"')) {
+      jsonStr = jsonStr.slice(1, -1);
+    }
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    console.error(`${key} 解析失败:`, e.message);
+    return null;
+  }
 }
 
 // ============ API 路由 ============
@@ -100,13 +122,13 @@ app.get('/api/slack/status', (req, res) => {
 app.get('/api/config', (req, res) => {
   const config = {
     // Agent 列表（从环境变量或默认）
-    agents: process.env.AGENT_LIST ? JSON.parse(process.env.AGENT_LIST) : null,
+    agents: parseJsonEnv('AGENT_LIST'),
     
     // Agent 头像映射
-    avatars: process.env.AGENT_AVATARS ? JSON.parse(process.env.AGENT_AVATARS) : {},
+    avatars: parseJsonEnv('AGENT_AVATARS') || {},
     
     // Agent 名称映射
-    names: process.env.AGENT_NAMES ? JSON.parse(process.env.AGENT_NAMES) : {},
+    names: parseJsonEnv('AGENT_NAMES') || {},
     
     // 背景配置
     background: {
