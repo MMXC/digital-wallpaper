@@ -512,10 +512,6 @@
           <span class="nav-icon">🔄</span>
           <span>更新与资源</span>
         </div>
-        <div class="nav-item" data-page="import">
-          <span class="nav-icon">📥</span>
-          <span>导入</span>
-        </div>
         <div class="nav-item" data-page="settings">
           <span class="nav-icon">⚙️</span>
           <span>设置</span>
@@ -995,11 +991,9 @@
         });
         const data = await res.json();
         showToast(`已应用天空盒: ${preset}`);
-        // 刷新预览（添加时间戳强制刷新，避免浏览器缓存）
+        // 刷新预览
         setTimeout(() => {
-          const frame = document.getElementById('preview-frame');
-          const timestamp = new Date().getTime();
-          frame.src = frame.src.split('?')[0] + '?t=' + timestamp;
+          document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
         }, 500);
       } catch(e) {
         showToast('应用失败: ' + e.message);

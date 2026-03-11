@@ -93,7 +93,7 @@ function AgentAvatar({ agent, position }) {
 }
 
 // ============ 3D 场景（内部组件，可以使用hooks）============
-function OfficeScene({ agents }) {
+function OfficeScene({ agents, environmentPreset }) {
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -109,7 +109,7 @@ function OfficeScene({ agents }) {
         const col = i % 3
         return <AgentAvatar key={agent.id} agent={agent} position={[col * 2 - 2, 0, row * 2 - 2]} />
       })}
-      <Environment preset={BACKGROUND_CONFIG.environment.preset} background />
+      <Environment preset={environmentPreset} background />
       <OrbitControls target={[0, 0.5, 0]} maxPolarAngle={Math.PI / 2 - 0.1} />
     </>
   )
@@ -171,12 +171,14 @@ export default function VirtualOffice() {
   const [agents, setAgents] = useState(DEFAULT_AGENTS)
   const [tasks, setTasks] = useState(DEFAULT_TASKS)
   const [loading, setLoading] = useState(true)
+  const [environmentPreset, setEnvironmentPreset] = useState(BACKGROUND_CONFIG.environment.preset)
   
   // WebSocket 实时更新
   const handleWebSocketMessage = (data) => {
     if (data.type === 'environment_update') {
-      BACKGROUND_CONFIG.environment.preset = data.data.preset
-      setLoading(false) // 触发重渲染
+      const newPreset = data.data.preset
+      BACKGROUND_CONFIG.environment.preset = newPreset
+      setEnvironmentPreset(newPreset) // 使用 state 触发重渲染
     }
     if (data.type === 'avatars_update') {
       setAgents(data.data)
@@ -216,7 +218,9 @@ export default function VirtualOffice() {
           }
           if (config.background) {
             if (config.background.preset) {
-              BACKGROUND_CONFIG.environment.preset = config.background.preset
+              const newPreset = config.background.preset
+              BACKGROUND_CONFIG.environment.preset = newPreset
+              setEnvironmentPreset(newPreset) // 使用 state 触发重渲染
             }
             if (config.background.mode) {
               BACKGROUND_CONFIG.mode = config.background.mode
@@ -279,7 +283,7 @@ export default function VirtualOffice() {
       )}
       
       <Canvas shadows camera={{ position: [0, 6, 10], fov: 50 }}>
-        <OfficeScene agents={agents} />
+        <OfficeScene agents={agents} environmentPreset={environmentPreset} />
       </Canvas>
       
       <div style={{ position: 'absolute', top: '16px', left: '16px', color: 'white', fontSize: '20px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
