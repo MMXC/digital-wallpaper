@@ -366,22 +366,58 @@
       });
     });
     
-    // 加载默认资产
+    // 加载默认资产 - 动态检测本地目录
     async function loadAssets() {
+      // 首先尝试从 API 获取资源列表
+      let apiResources = { environments: [], effects: [] };
+      try {
+        const res = await fetch('/api/resources');
+        apiResources = await res.json();
+      } catch (e) { console.log('API不可用，使用本地资源'); }
+      
+      // 动态检测本地 assets 目录下的文件
+      const detectLocalAssets = async (dir, type) => {
+        const assets = [];
+        const baseNames = {
+          human: ['human', 'avatar', 'person'],
+          bg: ['bg', 'background', 'wallpaper', 'scene'],
+          effect: ['effect', 'particle', 'fx']
+        };
+        const extensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'];
+        
+        // 尝试常见的文件名模式
+        for (let i = 1; i <= 10; i++) {
+          for (const ext of extensions) {
+            for (const name of baseNames[type] || []) {
+              const filename = `${name}${i}${ext}`;
+              const src = `./assets/${type}/${filename}`;
+              try {
+                const response = await fetch(src, { method: 'HEAD' });
+                if (response.ok) {
+                  assets.push({ name: `${name}${i}`, src, tag: '预设' });
+                }
+              } catch (e) { /* 文件不存在 */ }
+            }
+          }
+        }
+        return assets;
+      };
+      
+      // 并行检测各类资源
+      const [localHuman, localBg, localEffect] = await Promise.all([
+        detectLocalAssets('human', 'human'),
+        detectLocalAssets('bg', 'bg'),
+        detectLocalAssets('effect', 'effect')
+      ]);
+      
+      // 合并资源列表（本地资源优先）
       const assets = {
         human: [
           { name: '默认虚拟主播', src: './assets/default-avatar.svg', tag: '默认' },
-          { name: '虚拟偶像', src: './assets/human1.png', tag: '预设' },
+          ...localHuman
         ],
-        bg: [
-          { name: '城市夜景', src: './assets/bg1.jpg', tag: '预设' },
-          { name: '星空', src: './assets/bg2.jpg', tag: '预设' },
-          { name: '海景', src: './assets/bg3.jpg', tag: '预设' },
-        ],
-        effect: [
-          { name: '爱心特效', src: './assets/effect1.gif', tag: '预设' },
-          { name: '星光特效', src: './assets/effect2.gif', tag: '预设' },
-        ]
+        bg: localBg,
+        effect: localEffect
       };
       
       // 渲染数字人资产
