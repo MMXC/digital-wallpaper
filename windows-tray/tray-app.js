@@ -272,7 +272,7 @@ function startBackend() {
 
 function startFrontend() {
   // 启动前清理可能占用的端口
-  cleanupPort(5173);
+  cleanupPort(18791);
   
   if (frontendProcess) {
     console.log('Frontend already running');
