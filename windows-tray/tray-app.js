@@ -30,8 +30,31 @@ const CONFIG = {
   frontendPort: 18791,
   backendPort: 18790,
   frontendUrl: 'http://localhost:18791',
-  backendWsUrl: 'ws://localhost:18790'
+  backendWsUrl: 'ws://localhost:18790',
+  logFilePath: path.join(__dirname, '..', 'logs', 'app.log')
 };
+
+// 确保日志目录存在
+const logDir = path.join(__dirname, '..', 'logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
+// 日志记录函数
+let logStream = null;
+function getLogStream() {
+  if (!logStream) {
+    logStream = fs.createWriteStream(CONFIG.logFilePath, { flags: 'a' });
+  }
+  return logStream;
+}
+
+function writeLog(type, msg) {
+  const timestamp = new Date().toISOString();
+  const logLine = `[${timestamp}] [${type}] ${msg}\n`;
+  getLogStream().write(logLine);
+  console.log(`[${type}] ${msg}`);
+}
 
 // 创建默认托盘图标 - 16x16 紫色方块
 function createDefaultIcon() {
@@ -140,6 +163,22 @@ function createTray() {
     },
     { type: 'separator' },
     {
+      label: 'View Logs',
+      click: () => {
+        const logPath = CONFIG.logFilePath;
+        if (fs.existsSync(logPath)) {
+          shell.openPath(logPath);
+        } else {
+          dialog.showMessageBox({
+            type: 'info',
+            title: 'Logs',
+            message: 'No logs yet'
+          });
+        }
+      }
+    },
+    { type: 'separator' },
+    {
       label: 'Settings',
       click: () => openSettings()
     },
@@ -191,19 +230,25 @@ function startBackend() {
   });
 
   backendProcess.stdout.on('data', (data) => {
-    console.log('[Backend] ' + data);
+    const msg = data.toString().trim();
+    console.log('[Backend] ' + msg);
+    writeLog('Backend', msg);
   });
 
   backendProcess.stderr.on('data', (data) => {
-    console.error('[Backend Error] ' + data);
+    const msg = data.toString().trim();
+    console.error('[Backend Error] ' + msg);
+    writeLog('Backend-Error', msg);
   });
 
   backendProcess.on('close', (code) => {
     console.log('[Backend] exited: ' + code);
+    writeLog('Backend', `Exited with code: ${code}`);
     backendProcess = null;
   });
 
   console.log('Backend started');
+  writeLog('System', 'Backend started');
 }
 
 function startFrontend() {
@@ -221,19 +266,25 @@ function startFrontend() {
   });
 
   frontendProcess.stdout.on('data', (data) => {
-    console.log('[Frontend] ' + data);
+    const msg = data.toString().trim();
+    console.log('[Frontend] ' + msg);
+    writeLog('Frontend', msg);
   });
 
   frontendProcess.stderr.on('data', (data) => {
-    console.error('[Frontend Error] ' + data);
+    const msg = data.toString().trim();
+    console.error('[Frontend Error] ' + msg);
+    writeLog('Frontend-Error', msg);
   });
 
   frontendProcess.on('close', (code) => {
     console.log('[Frontend] exited: ' + code);
+    writeLog('Frontend', `Exited with code: ${code}`);
     frontendProcess = null;
   });
 
   console.log('Frontend started');
+  writeLog('System', 'Frontend started');
 }
 
 function startAllServices() {
@@ -331,21 +382,26 @@ ipcMain.handle('open-folder', async (event, folderPath) => shell.openPath(folder
 
 // ============ 应用生命周期 ============
 app.whenReady().then(() => {
+  writeLog('System', 'Digital Wallpaper starting...');
   console.log('Digital Wallpaper starting...');
   try {
     createWindow();
     console.log('Window created');
   } catch (e) {
     console.error('Window create error:', e);
+    writeLog('Error', 'Window create: ' + e.message);
   }
   try {
     createTray();
     console.log('Tray creation attempted');
+    writeLog('System', 'Tray created');
   } catch (e) {
     console.error('Tray create error:', e);
+    writeLog('Error', 'Tray create: ' + e.message);
   }
   setTimeout(() => startAllServices(), 1500);
   console.log('Ready');
+  writeLog('System', 'Ready');
 });
 
 app.on('window-all-closed', () => {
