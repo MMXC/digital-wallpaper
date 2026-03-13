@@ -646,7 +646,82 @@
         </div>
         
         <div class="card">
+          <h3>内置环境</h3>
           <div class="resource-grid" id="environments-grid"></div>
+        </div>
+        
+        <div class="card" style="margin-top: 16px;">
+          <h3>本地资源 (assets/)</h3>
+          <div class="resource-grid" id="local-environments"></div>
+        </div>
+      </div>
+      
+      <!-- Avatars -->
+      <div class="page" id="page-avatars" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">数字人</h1>
+            <p class="page-subtitle">自定义数字人形象</p>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h3>本地资源 (assets/human/)</h3>
+          <div class="resource-grid" id="local-avatars"></div>
+        </div>
+        
+        <div class="card" style="margin-top: 16px;">
+          <h3>上传数字人</h3>
+          <div class="upload-zone" id="upload-avatar">
+            <p>拖拽图片到此处或点击上传</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">支持 PNG, JPG, SVG (透明背景推荐)</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Backgrounds -->
+      <div class="page" id="page-backgrounds" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">背景</h1>
+            <p class="page-subtitle">静态背景图片</p>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h3>本地资源 (assets/bg/)</h3>
+          <div class="resource-grid" id="local-backgrounds"></div>
+        </div>
+        
+        <div class="card" style="margin-top: 16px;">
+          <h3>上传背景</h3>
+          <div class="upload-zone" id="upload-bg">
+            <p>拖拽图片到此处或点击上传</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">支持 JPG, PNG, WebP</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Effects -->
+      <div class="page" id="page-effects" style="display: none;">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">特效</h1>
+            <p class="page-subtitle">动画特效资源</p>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h3>本地资源 (assets/effect/)</h3>
+          <div class="resource-grid" id="local-effects"></div>
+        </div>
+        
+        <div class="card" style="margin-top: 16px;">
+          <h3>上传特效</h3>
+          <div class="upload-zone" id="upload-effect">
+            <p>拖拽文件到此处或点击上传</p>
+            <p style="font-size: 12px; color: #888; margin-top: 8px;">支持 GIF, MP4, WebM</p>
+          </div>
         </div>
       </div>
       
@@ -844,6 +919,10 @@
       if (page === 'contracts') loadContracts();
       if (page === 'settings') loadRuntimeConfig();
       if (page === 'updates') { loadVersion(); checkForUpdates(); loadResources(); loadUploadedFiles(); }
+      // 资源页面切换时加载本地资源
+      if (page === 'avatars' || page === 'backgrounds' || page === 'effects' || page === 'environments') {
+        loadLocalAssets();
+      }
     }
     
     // Toast
@@ -1066,43 +1145,54 @@
           }
         });
         
-        // 更新各面板的资源显示
-        // 数字人面板
-        const humanPanel = document.getElementById('panel-avatars');
-        if (humanPanel) {
-          const existingList = humanPanel.querySelector('.asset-list') || createAssetList('human');
-          existingList.innerHTML = byType.human.map(f => 
-            `<div class="asset-item" data-src="${f.src}">${f.name}${f.ext}</div>`
-          ).join('') || '<div style="color:#888">无本地数字人资源</div>';
+        // 生成资源卡片HTML
+        const makeCard = (f) => `
+          <div class="resource-card" data-src="${f.src}" style="cursor:pointer;padding:12px;background:var(--bg-secondary);border-radius:8px;text-align:center;">
+            <div style="height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+              ${f.ext === '.png' || f.ext === '.jpg' || f.ext === '.jpeg' || f.ext === '.gif' || f.ext === '.svg' || f.ext === '.webp' 
+                ? `<img src="${f.src}" style="max-height:60px;max-width:100%;" onerror="this.parentElement.innerHTML='📄'">` 
+                : '📄'}
+            </div>
+            <div style="font-size:12px;">${f.name}</div>
+            <div style="font-size:10px;color:#888;">${f.ext}</div>
+          </div>
+        `;
+        
+        // 更新各页面的资源显示
+        const avatarsGrid = document.getElementById('local-avatars');
+        if (avatarsGrid) {
+          avatarsGrid.innerHTML = byType.human.map(makeCard).join('') || '<div style="color:#888">无本地数字人资源</div>';
         }
         
-        // 背景面板
-        const bgPanel = document.getElementById('panel-backgrounds');
-        if (bgPanel) {
-          const existingList = bgPanel.querySelector('.asset-list') || createAssetList('bg');
-          existingList.innerHTML = byType.bg.map(f => 
-            `<div class="asset-item" data-src="${f.src}">${f.name}${f.ext}</div>`
-          ).join('') || '<div style="color:#888">无本地背景资源</div>';
+        const backgroundsGrid = document.getElementById('local-backgrounds');
+        if (backgroundsGrid) {
+          backgroundsGrid.innerHTML = byType.bg.map(makeCard).join('') || '<div style="color:#888">无本地背景资源</div>';
         }
         
-        // 特效面板
-        const effectPanel = document.getElementById('panel-effects');
-        if (effectPanel) {
-          const existingList = effectPanel.querySelector('.asset-list') || createAssetList('effect');
-          existingList.innerHTML = byType.effect.map(f => 
-            `<div class="asset-item" data-src="${f.src}">${f.name}${f.ext}</div>`
-          ).join('') || '<div style="color:#888">无本地特效资源</div>';
+        const effectsGrid = document.getElementById('local-effects');
+        if (effectsGrid) {
+          effectsGrid.innerHTML = byType.effect.map(makeCard).join('') || '<div style="color:#888">无本地特效资源</div>';
         }
         
-        console.log('本地资源已加载:', byType);
+        const envGrid = document.getElementById('local-environments');
+        if (envGrid) {
+          envGrid.innerHTML = byType.skybox.map(makeCard).join('') || '<div style="color:#888">无本地天空盒资源</div>';
+        }
+        
+        // 添加点击事件
+        document.querySelectorAll('.resource-card').forEach(card => {
+          card.addEventListener('click', () => {
+            const src = card.dataset.src;
+            console.log('选择资源:', src);
+            alert('已选择: ' + src);
+          });
+        });
+        
+        console.log('本地资源已加载');
       } catch(e) {
         console.log('扫描本地资源失败:', e);
       }
     }
-    
-    function createAssetList(type) {
-      const div = document.createElement('div');
-      div.className = 'asset-list';
       div.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;padding:10px;';
       return div;
     }
