@@ -672,10 +672,10 @@
         
         <div class="card" style="margin-top: 16px;">
           <h3>上传数字人</h3>
-          <div class="upload-zone" id="upload-avatar">
-            <p>拖拽图片到此处或点击上传</p>
-            <p style="font-size: 12px; color: #888; margin-top: 8px;">支持 PNG, JPG, SVG (透明背景推荐)</p>
-          </div>
+          <input type="file" id="file-avatar" accept="image/*" style="display:none" onchange="handleAssetUpload(this, 'human')">
+          <button class="btn btn-secondary" onclick="document.getElementById('file-avatar').click()">📂 选择图片</button>
+          <span id="avatar-filename" style="margin-left:12px;color:var(--text-secondary)"></span>
+          <button class="btn btn-primary" style="margin-left:8px" onclick="uploadAsset('human')">⬆️ 上传</button>
         </div>
       </div>
       
@@ -695,10 +695,10 @@
         
         <div class="card" style="margin-top: 16px;">
           <h3>上传背景</h3>
-          <div class="upload-zone" id="upload-bg">
-            <p>拖拽图片到此处或点击上传</p>
-            <p style="font-size: 12px; color: #888; margin-top: 8px;">支持 JPG, PNG, WebP</p>
-          </div>
+          <input type="file" id="file-bg" accept="image/*" style="display:none" onchange="handleAssetUpload(this, 'bg')">
+          <button class="btn btn-secondary" onclick="document.getElementById('file-bg').click()">📂 选择图片</button>
+          <span id="bg-filename" style="margin-left:12px;color:var(--text-secondary)"></span>
+          <button class="btn btn-primary" style="margin-left:8px" onclick="uploadAsset('bg')">⬆️ 上传</button>
         </div>
       </div>
       
@@ -718,10 +718,10 @@
         
         <div class="card" style="margin-top: 16px;">
           <h3>上传特效</h3>
-          <div class="upload-zone" id="upload-effect">
-            <p>拖拽文件到此处或点击上传</p>
-            <p style="font-size: 12px; color: #888; margin-top: 8px;">支持 GIF, MP4, WebM</p>
-          </div>
+          <input type="file" id="file-effect" accept="image/gif,video/*" style="display:none" onchange="handleAssetUpload(this, 'effect')">
+          <button class="btn btn-secondary" onclick="document.getElementById('file-effect').click()">📂 选择文件</button>
+          <span id="effect-filename" style="margin-left:12px;color:var(--text-secondary)"></span>
+          <button class="btn btn-primary" style="margin-left:8px" onclick="uploadAsset('effect')">⬆️ 上传</button>
         </div>
       </div>
       
@@ -1195,6 +1195,48 @@
         console.log('本地资源已加载');
       } catch(e) {
         console.log('扫描本地资源失败:', e);
+      }
+    }
+    
+    // 资源上传处理
+    let currentUploadType = null;
+    
+    function handleAssetUpload(input, type) {
+      currentUploadType = type;
+      const filename = input.files[0]?.name || '';
+      document.getElementById(type + '-filename').textContent = filename;
+    }
+    
+    async function uploadAsset(type) {
+      const input = document.getElementById('file-' + type);
+      const file = input.files[0];
+      if (!file) {
+        showToast('请先选择文件');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // 根据类型选择上传目录
+      const folder = type === 'human' ? 'human' : type === 'bg' ? 'bg' : 'effect';
+      
+      try {
+        showToast('上传中...');
+        const res = await fetch('/api/upload?folder=' + folder, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (res.ok) {
+          showToast('上传成功!');
+          // 刷新资源列表
+          loadLocalAssets();
+        } else {
+          showToast('上传失败');
+        }
+      } catch(e) {
+        showToast('上传失败: ' + e.message);
       }
     }
     
