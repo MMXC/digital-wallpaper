@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>360° 全景预览 - 数字人壁纸</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Microsoft YaHei', sans-serif;
+    }
+    
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+      background: rgba(0,0,0,0.6);
+      padding: 15px 20px;
+      border-radius: 30px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .controls button {
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+    
+    .controls button:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .controls button.active {
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      border-color: transparent;
+    }
+    
+    .info-panel {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.6);
+      padding: 15px 20px;
+      border-radius: 12px;
+      color: #fff;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+    
+    .info-panel h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .info-panel p {
+      font-size: 12px;
+      color: #aaa;
+    }
+    
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-size: 18px;
+      z-index: 2000;
+    }
+    
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      text-align: left;
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
+    }
+    
+    /* 嵌入模式标志 */
+    .embedded-marker {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,0,0,0.5);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      z-index: 9999;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">加载中</div>
+  
+  <div class="info-panel" id="info-panel">
+    <h3>🌐 360° 全景预览</h3>
+    <p>鼠标拖拽旋转 | 滚轮缩放</p>
+  </div>
+  
+  <div class="embedded-marker" id="embedded-marker">预览模式</div>
+  
+  <div id="container"></div>
+  
+  <div class="controls">
+    <button id="btn-autoplay" class="active">▶ 自动旋转</button>
+    <button id="btn-fullscreen">⛶ 全屏</button>
+    <button id="btn-vr">🥽 VR 模式</button>
+    <button id="btn-close">✕ 关闭</button>
+  </div>
+  
+  <!-- 引入 Pannellum -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+  
+  <script>
+    // 获取 URL 参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const imageSrc = urlParams.get('src') || '';
+    
+    let viewer = null;
+    let autoRotate = true;
+    
+    // 初始化全景查看器
+    function initViewer() {
+      const container = document.getElementById('container');
+      
+      viewer = pannellum.viewer('container', {
+        type: 'equirectangular',
+        panorama: imageSrc,
+        autoLoad: true,
+        autoRotate: autoRotate ? -2 : 0,
+        compass: false,
+        showZoomCtrl: false,
+        showFullscreenCtrl: false,
+        mouseZoom: true,
+        draggable: true,
+        keyboardZoom: true,
+        hfov: 100,
+        pitch: 0,
+        yaw: 0,
+        onLoad: () => {
+          document.getElementById('loading').style.display = 'none';
+          console.log('全景图加载完成');
+        },
+        onError: (err) => {
+          document.getElementById('loading').textContent = '加载失败: ' + err;
+          console.error('加载错误:', err);
+        }
+      });
+    }
+    
+    // 自动旋转控制
+    document.getElementById('btn-autoplay').addEventListener('click', function() {
+      autoRotate = !autoRotate;
+      this.classList.toggle('active', autoRotate);
+      this.textContent = autoRotate ? '▶ 自动旋转' : '⏸ 暂停旋转';
+      viewer.setAutoRotate(autoRotate ? -2 : 0);
+    });
+    
+    // 全屏控制
+    document.getElementById('btn-fullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    });
+    
+    // VR 模式
+    document.getElementById('btn-vr').addEventListener('click', () => {
+      viewer.toggleVr();
+    });
+    
+    // 关闭按钮
+    document.getElementById('btn-close').addEventListener('click', () => {
+      // 如果是嵌入模式，通过 IPC 通知主进程关闭
+      if (window.electronAPI?.closePreview) {
+        window.electronAPI.closePreview();
+      } else {
+        // 独立窗口则关闭自身
+        window.close();
+      }
+    });
+    
+    // 嵌入模式检测
+    if (window.self !== window.top) {
+      document.getElementById('embedded-marker').style.display = 'block';
+      document.querySelector('.controls').style.bottom = '10px';
+    }
+    
+    // 键盘快捷键
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.getElementById('btn-close').click();
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('btn-autoplay').click();
+      } else if (e.key === 'f' || e.key === 'F') {
+        document.getElementById('btn-fullscreen').click();
+      }
+    });
+    
+    // 初始化
+    if (imageSrc) {
+      initViewer();
+    } else {
+      document.getElementById('loading').textContent = '未指定全景图 URL';
+    }
+  </script>
+</body>
+</html>

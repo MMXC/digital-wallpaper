@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>导出静态壁纸 - 数字人壁纸</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+      padding: 40px;
+    }
+    
+    h1 {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 40px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .config-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .preview-area {
+      width: 100%;
+      height: 200px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+    
+    .preview-area img, .preview-area video {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    .preview-area .placeholder {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 15px;
+    }
+    
+    .asset-item {
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+      text-align: center;
+    }
+    
+    .asset-item:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateY(-3px);
+    }
+    
+    .asset-item.selected {
+      border-color: #00d2ff;
+      background: rgba(0,210,255,0.1);
+    }
+    
+    .asset-item .preview {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 8px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: rgba(0,0,0,0.3);
+    }
+    
+    .asset-item .name {
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* 气泡配置 */
+    .bubble-config {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
+    .bubble-config label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+    
+    .bubble-config input,
+    .bubble-config textarea {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+    }
+    
+    .bubble-config input:focus,
+    .bubble-config textarea:focus {
+      outline: none;
+      border-color: #00d2ff;
+    }
+    
+    .bubble-config textarea {
+      grid-column: 1 / -1;
+      min-height: 80px;
+      resize: vertical;
+    }
+    
+    /* 气泡样式预览 */
+    .bubble-preview {
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 16px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .bubble-preview .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 12px;
+    }
+    
+    .bubble-preview .content {
+      display: inline-block;
+      vertical-align: middle;
+      max-width: 300px;
+    }
+    
+    .bubble-preview .sender {
+      font-weight: bold;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .bubble-preview .text {
+      color: #555;
+      font-size: 15px;
+      margin-top: 4px;
+    }
+    
+    /* 导出按钮 */
+    .export-section {
+      text-align: center;
+      margin-top: 30px;
+    }
+    
+    .btn-export {
+      padding: 15px 50px;
+      font-size: 18px;
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      border: none;
+      border-radius: 30px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-export:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,210,255,0.4);
+    }
+    
+    .btn-export:disabled {
+      background: #444;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    /* 自定义颜色选择 */
+    .color-picker {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .color-swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    .color-swatch:hover {
+      transform: scale(1.1);
+    }
+    
+    .color-swatch.selected {
+      border-color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>📤 导出静态壁纸</h1>
+  <p class="subtitle">将当前配置导出为独立的 HTML 文件</p>
+  
+  <div class="container">
+    <!-- 数字人选择 -->
+    <div class="config-section">
+      <div class="section-title">👤 选择数字人</div>
+      <div class="preview-area" id="human-preview">
+        <span class="placeholder">选择数字人后预览</span>
+      </div>
+      <div class="asset-grid" id="human-grid">
+        <div class="asset-item selected" data-src="./assets/default-avatar.svg" data-type="image">
+          <div class="preview" style="background:linear-gradient(135deg,#667eea,#764ba2)"></div>
+          <div class="name">默认形象</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 背景选择 -->
+    <div class="config-section">
+      <div class="section-title">🖼️ 选择背景</div>
+      <div class="preview-area" id="bg-preview">
+        <span class="placeholder">选择背景后预览</span>
+      </div>
+      <div class="asset-grid" id="bg-grid">
+        <div class="asset-item" data-src="./assets/bg1.jpg" data-type="image">
+          <div class="preview" style="background:linear-gradient(135deg,#2d3436,#636e72)"></div>
+          <div class="name">城市夜景</div>
+        </div>
+        <div class="asset-item selected" data-src="" data-type="none">
+          <div class="preview" style="background:#1a1a2e"></div>
+          <div class="name">透明背景</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 气泡配置 -->
+    <div class="config-section">
+      <div class="section-title">💬 消息气泡配置</div>
+      <div class="bubble-config">
+        <div>
+          <label>发送者名称</label>
+          <input type="text" id="sender-name" value="虚拟主播" placeholder="发送者名称">
+        </div>
+        <div>
+          <label>气泡颜色</label>
+          <div class="color-picker" id="color-picker">
+            <div class="color-swatch selected" style="background:#ffffff" data-color="#ffffff"></div>
+            <div class="color-swatch" style="background:#ffeaa7" data-color="#ffeaa7"></div>
+            <div class="color-swatch" style="background:#81ecec" data-color="#81ecec"></div>
+            <div class="color-swatch" style="background:#a29bfe" data-color="#a29bfe"></div>
+            <div class="color-swatch" style="background:#fd79a8" data-color="#fd79a8"></div>
+            <div class="color-swatch" style="background:#55efc4" data-color="#55efc4"></div>
+          </div>
+        </div>
+        <div>
+          <label>气泡位置</label>
+          <input type="text" id="bubble-position" value="top: 100px; left: 50%;" placeholder="CSS 位置">
+        </div>
+        <div>
+          <label>头像背景</label>
+          <input type="text" id="avatar-bg" value="linear-gradient(135deg, #667eea, #764ba2)" placeholder="CSS 背景">
+        </div>
+        <div>
+          <label>消息内容</label>
+          <input type="text" id="message-text" value="你好！欢迎使用数字人壁纸。" placeholder="消息文本">
+        </div>
+      </div>
+      
+      <div class="bubble-preview" id="bubble-preview">
+        <span class="avatar"></span>
+        <div class="content">
+          <div class="sender" id="preview-sender">虚拟主播</div>
+          <div class="text" id="preview-text">你好！欢迎使用数字人壁纸。</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 导出按钮 -->
+    <div class="export-section">
+      <button class="btn-export" id="btn-export">⬇ 导出 HTML 文件</button>
+    </div>
+  </div>
+  
+  <script>
+    // 当前选择
+    let selectedHuman = './assets/default-avatar.svg';
+    let selectedBg = '';
+    let bubbleColor = '#ffffff';
+    
+    // 选择资产
+    document.querySelectorAll('.asset-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const container = this.parentElement;
+        container.querySelectorAll('.asset-item').forEach(i => i.classList.remove('selected'));
+        this.classList.add('selected');
+        
+        const src = this.dataset.src;
+        const type = this.dataset.type;
+        
+        if (type === 'human') {
+          selectedHuman = src;
+          updateHumanPreview(src);
+        } else if (type === 'bg') {
+          selectedBg = src;
+          updateBgPreview(src);
+        }
+      });
+    });
+    
+    // 颜色选择
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', function() {
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        this.classList.add('selected');
+        bubbleColor = this.dataset.color;
+        document.getElementById('bubble-preview').style.background = bubbleColor;
+      });
+    });
+    
+    // 实时预览更新
+    ['sender-name', 'message-text'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function() {
+        const key = id === 'sender-name' ? 'sender' : 'text';
+        document.getElementById('preview-' + key).textContent = this.value;
+      });
+    });
+    
+    function updateHumanPreview(src) {
+      const container = document.getElementById('human-preview');
+      if (src.endsWith('.mp4') || src.endsWith('.webm')) {
+        container.innerHTML = `<video src="${src}" autoplay loop muted></video>`;
+      } else {
+        container.innerHTML = `<img src="${src}" alt="数字人">`;
+      }
+    }
+    
+    function updateBgPreview(src) {
+      const container = document.getElementById('bg-preview');
+      if (!src) {
+        container.innerHTML = '<span class="placeholder">透明背景</span>';
+        container.style.background = 'transparent';
+      } else {
+        container.innerHTML = `<img src="${src}" alt="背景">`;
+      }
+    }
+    
+    // 导出 HTML
+    document.getElementById('btn-export').addEventListener('click', async () => {
+      const sender = document.getElementById('sender-name').value;
+      const text = document.getElementById('message-text').value;
+      const position = document.getElementById('bubble-position').value;
+      const avatarBg = document.getElementById('avatar-bg').value;
+      
+      const htmlContent = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字人壁纸 - ${sender}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: ${selectedBg ? `url('${selectedBg}') center/cover no-repeat` : 'transparent'};
+      font-family: 'Microsoft YaHei', sans-serif;
+    }
+    #container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    #digital-human {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 600px;
+    }
+    #digital-human img, #digital-human video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    #message-bubble {
+      position: absolute;
+      ${position}
+      transform: translateX(-50%);
+      background: ${bubbleColor};
+      border-radius: 20px;
+      padding: 20px 30px;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    #message-bubble .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: ${avatarBg};
+      margin-right: 15px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    #message-bubble .content {
+      display: inline-block;
+      vertical-align: middle;
+      max-width: 400px;
+    }
+    #message-bubble .sender {
+      font-weight: bold;
+      color: #333;
+      font-size: 14px;
+    }
+    #message-bubble .text {
+      color: #555;
+      font-size: 16px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="message-bubble">
+      <span class="avatar"></span>
+      <div class="content">
+        <div class="sender">${sender}</div>
+        <div class="text">${text}</div>
+      </div>
+    </div>
+    <div id="digital-human">
+      <img src="${selectedHuman}" alt="数字人">
+    </div>
+  </div>
+</body>
+</html>`;
+      
+      // 下载文件
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `digital-human-wallpaper-${Date.now()}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

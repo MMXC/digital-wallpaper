@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数字人壁纸 - 管理后台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+    
+    .header {
+      background: rgba(0,0,0,0.3);
+      padding: 20px 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .version-info {
+      font-size: 12px;
+      color: #888;
+      margin-top: 5px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px 40px;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    
+    .tab {
+      padding: 12px 24px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .tab:hover { background: rgba(255,255,255,0.1); }
+    
+    .tab.active {
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      border-color: transparent;
+    }
+    
+    .panel { display: none; }
+    .panel.active { display: block; }
+    
+    .section-title {
+      font-size: 20px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    
+    .asset-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+    
+    .asset-card:hover { transform: translateY(-5px); }
+    .asset-card.selected { border-color: #00d2ff; }
+    
+    .asset-card .preview {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      background: rgba(0,0,0,0.3);
+    }
+    
+    .asset-card .info {
+      padding: 12px;
+    }
+    
+    .asset-card .name {
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .asset-card .tag {
+      font-size: 11px;
+      color: #888;
+      margin-top: 5px;
+    }
+    
+    .import-zone {
+      border: 2px dashed rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+    }
+    
+    .import-zone:hover {
+      border-color: #00d2ff;
+      background: rgba(0,210,255,0.05);
+    }
+    
+    .btn {
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,210,255,0.3); }
+    
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    /* 更新日志 */
+    .changelog {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    
+    .changelog-item {
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .changelog-item:last-child { border-bottom: none; }
+    
+    .changelog-version {
+      font-weight: bold;
+      color: #00d2ff;
+    }
+    
+    .changelog-date {
+      font-size: 12px;
+      color: #888;
+      margin-left: 10px;
+    }
+    
+    .changelog-content {
+      margin-top: 8px;
+      line-height: 1.6;
+      color: #ccc;
+    }
+    
+    /* 资源下载 */
+    .download-section {
+      margin-top: 30px;
+    }
+    
+    .download-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.05);
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .download-item .name { font-size: 14px; }
+    .download-item .size { font-size: 12px; color: #888; }
+    
+    .download-btn {
+      padding: 8px 20px;
+      background: #00d2ff;
+      border: none;
+      border-radius: 6px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    /* 预览区域 */
+    .preview-current {
+      margin-bottom: 30px;
+    }
+    
+    .preview-box {
+      width: 100%;
+      height: 300px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .preview-box img, .preview-box video {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎭 数字人壁纸管理后台</h1>
+    <div class="version-info">版本 v1.2.0 | 发布日期 2026-03-13</div>
+  </div>
+  
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" data-tab="digital-human">数字人管理</div>
+      <div class="tab" data-tab="background">背景管理</div>
+      <div class="tab" data-tab="effects">特效管理</div>
+      <div class="tab" data-tab="updates">更新日志</div>
+    </div>
+    
+    <!-- 数字人管理面板 -->
+    <div class="panel active" id="panel-digital-human">
+      <h2 class="section-title">👤 数字人模型</h2>
+      
+      <div class="import-zone" id="import-human">
+        <p>拖拽文件到此处或点击上传</p>
+        <p style="font-size:12px;color:#888;margin-top:10px">支持 JPG, PNG, MP4, WebM</p>
+        <input type="file" id="file-human" accept="image/*,video/*" style="display:none">
+      </div>
+      
+      <h3 style="margin:20px 0 15px">默认资产</h3>
+      <div class="grid" id="human-assets">
+        <!-- 动态加载 -->
+      </div>
+    </div>
+    
+    <!-- 背景管理面板 -->
+    <div class="panel" id="panel-background">
+      <h2 class="section-title">🖼️ 背景管理（天空盒）</h2>
+      
+      <div class="preview-current">
+        <h3 style="margin-bottom:15px">当前背景</h3>
+        <div class="preview-box" id="current-bg-preview">
+          <img id="current-bg-img" src="" alt="当前背景" style="display:none">
+          <span style="color:#888">未设置</span>
+        </div>
+        <button class="btn" style="margin-top:15px" id="btn-preview-360">🔍 实时预览 360°</button>
+      </div>
+      
+      <div class="import-zone" id="import-bg">
+        <p>拖拽天空盒图片到此处或点击上传</p>
+        <p style="font-size:12px;color:#888;margin-top:10px">支持 JPG, PNG (推荐 4K 全景图)</p>
+        <input type="file" id="file-bg" accept="image/*" style="display:none">
+      </div>
+      
+      <h3 style="margin:20px 0 15px">默认天空盒</h3>
+      <div class="grid" id="bg-assets">
+        <!-- 动态加载 -->
+      </div>
+    </div>
+    
+    <!-- 特效管理面板 -->
+    <div class="panel" id="panel-effects">
+      <h2 class="section-title">✨ 特效管理</h2>
+      
+      <div class="import-zone" id="import-effect">
+        <p>拖拽特效文件到此处或点击上传</p>
+        <p style="font-size:12px;color:#888;margin-top:10px">支持 GIF, MP4, WebM</p>
+        <input type="file" id="file-effect" accept="image/gif,video/*" style="display:none">
+      </div>
+      
+      <h3 style="margin:20px 0 15px">默认特效</h3>
+      <div class="grid" id="effect-assets">
+        <!-- 动态加载 -->
+      </div>
+    </div>
+    
+    <!-- 更新日志面板 -->
+    <div class="panel" id="panel-updates">
+      <h2 class="section-title">📝 更新日志</h2>
+      
+      <div class="changelog">
+        <div class="changelog-item">
+          <span class="changelog-version">v1.2.0</span>
+          <span class="changelog-date">2026-03-13</span>
+          <div class="changelog-content">
+            • 新增天空盒 360° 实时预览功能<br>
+            • 新增静态壁纸 HTML 导出功能<br>
+            • 新增数字人/背景/特效资产管理<br>
+            • 支持单文件导入自定义资源
+          </div>
+        </div>
+        <div class="changelog-item">
+          <span class="changelog-version">v1.1.0</span>
+          <span class="changelog-date">2026-03-09</span>
+          <div class="changelog-content">
+            • 初始版本发布<br>
+            • 数字人显示与消息播报<br>
+            • 点击穿透控制<br>
+            • Slack 消息集成
+          </div>
+        </div>
+      </div>
+      
+      <div class="download-section">
+        <h2 class="section-title">📦 资源下载</h2>
+        
+        <div class="download-item">
+          <div>
+            <div class="name">预设天空盒包 (5个)</div>
+            <div class="size">约 50MB</div>
+          </div>
+          <button class="download-btn" data-type="skypack">下载</button>
+        </div>
+        
+        <div class="download-item">
+          <div>
+            <div class="name">示例数字人模型</div>
+            <div class="size">约 10MB</div>
+          </div>
+          <button class="download-btn" data-type="human">下载</button>
+        </div>
+        
+        <div class="download-item">
+          <div>
+            <div class="name">特效包 (10个)</div>
+            <div class="size">约 30MB</div>
+          </div>
+          <button class="download-btn" data-type="effects">下载</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Tab 切换
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+    
+    // 加载默认资产
+    async function loadAssets() {
+      const assets = {
+        human: [
+          { name: '默认虚拟主播', src: './assets/default-avatar.svg', tag: '默认' },
+          { name: '虚拟偶像', src: './assets/human1.png', tag: '预设' },
+        ],
+        bg: [
+          { name: '城市夜景', src: './assets/bg1.jpg', tag: '预设' },
+          { name: '星空', src: './assets/bg2.jpg', tag: '预设' },
+          { name: '海景', src: './assets/bg3.jpg', tag: '预设' },
+        ],
+        effect: [
+          { name: '爱心特效', src: './assets/effect1.gif', tag: '预设' },
+          { name: '星光特效', src: './assets/effect2.gif', tag: '预设' },
+        ]
+      };
+      
+      // 渲染数字人资产
+      const humanContainer = document.getElementById('human-assets');
+      assets.human.forEach(item => {
+        humanContainer.innerHTML += `
+          <div class="asset-card" data-src="${item.src}" data-type="human">
+            <div class="preview" style="background:linear-gradient(135deg,#667eea,#764ba2)"></div>
+            <div class="info">
+              <div class="name">${item.name}</div>
+              <div class="tag">${item.tag}</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      // 渲染背景资产
+      const bgContainer = document.getElementById('bg-assets');
+      assets.bg.forEach(item => {
+        bgContainer.innerHTML += `
+          <div class="asset-card" data-src="${item.src}" data-type="bg">
+            <img class="preview" src="${item.src}" onerror="this.style.display='none'">
+            <div class="info">
+              <div class="name">${item.name}</div>
+              <div class="tag">${item.tag}</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      // 渲染特效资产
+      const effectContainer = document.getElementById('effect-assets');
+      assets.effect.forEach(item => {
+        effectContainer.innerHTML += `
+          <div class="asset-card" data-src="${item.src}" data-type="effect">
+            <div class="preview" style="background:linear-gradient(135deg,#f093fb,#f5576c)"></div>
+            <div class="info">
+              <div class="name">${item.name}</div>
+              <div class="tag">${item.tag}</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      // 资产选择事件
+      document.querySelectorAll('.asset-card').forEach(card => {
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.asset-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          
+          const src = card.dataset.src;
+          const type = card.dataset.type;
+          
+          // 通知主进程切换资产
+          window.electronAPI?.selectAsset(type, src);
+        });
+      });
+    }
+    
+    // 文件导入处理
+    function setupImportZone(id, fileId, type) {
+      const zone = document.getElementById(id);
+      const fileInput = document.getElementById(fileId);
+      
+      zone.addEventListener('click', () => fileInput.click());
+      
+      zone.addEventListener('dragover', e => {
+        e.preventDefault();
+        zone.style.borderColor = '#00d2ff';
+      });
+      
+      zone.addEventListener('dragleave', e => {
+        e.preventDefault();
+        zone.style.borderColor = 'rgba(255,255,255,0.2)';
+      });
+      
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.style.borderColor = 'rgba(255,255,255,0.2)';
+        handleFiles(e.dataTransfer.files, type);
+      });
+      
+      fileInput.addEventListener('change', e => handleFiles(e.target.files, type));
+    }
+    
+    function handleFiles(files, type) {
+      Array.from(files).forEach(file => {
+        // 复制到 assets 目录
+        console.log('导入文件:', file.name, '类型:', type);
+        window.electronAPI?.importAsset(type, file.name);
+      });
+    }
+    
+    // 360° 预览按钮
+    document.getElementById('btn-preview-360').addEventListener('click', () => {
+      window.electronAPI?.open360Preview();
+    });
+    
+    // 资源下载
+    document.querySelectorAll('.download-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        window.electronAPI?.downloadResource(type);
+      });
+    });
+    
+    // 初始化
+    loadAssets();
+    setupImportZone('import-human', 'file-human', 'human');
+    setupImportZone('import-bg', 'file-bg', 'bg');
+    setupImportZone('import-effect', 'file-effect', 'effect');
+  </script>
+</body>
+</html>
