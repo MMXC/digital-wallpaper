@@ -191,6 +191,18 @@ function createTray() {
       label: 'Stop All',
       click: () => stopAllServices()
     },
+    {
+      label: '清理端口',
+      click: () => {
+        cleanupPort(3001);
+        cleanupPort(18791);
+        dialog.showMessageBox({
+          type: 'info',
+          title: '清理完成',
+          message: '已清理 3001 和 18791 端口'
+        });
+      }
+    },
     { type: 'separator' },
     {
       label: 'Quit',
@@ -232,8 +244,8 @@ function cleanupPort(port) {
 }
 
 function startBackend() {
-  // 启动前清理可能占用的端口
-  cleanupPort(3001);
+  // 不在启动前自动清理，避免误杀其他进程
+  // 用户可通过托盘菜单手动清理
   
   if (backendProcess) {
     console.log('Backend already running');
@@ -271,8 +283,7 @@ function startBackend() {
 }
 
 function startFrontend() {
-  // 启动前清理可能占用的端口
-  cleanupPort(18791);
+  // 不在启动前自动清理，避免误杀其他进程
   
   if (frontendProcess) {
     console.log('Frontend already running');
