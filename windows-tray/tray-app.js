@@ -215,7 +215,26 @@ function createTray() {
 }
 
 // ============ 服务管理 ============
+function cleanupPort(port) {
+  if (process.platform === 'win32') {
+    exec(`netstat -ano | findstr :${port}`, (err, stdout) => {
+      if (stdout) {
+        const lines = stdout.trim().split('\n');
+        lines.forEach(line => {
+          const match = line.match(/\s+(\d+)\s*$/);
+          if (match) {
+            exec(`taskkill /pid ${match[1]} /T /F`, () => {});
+          }
+        });
+      }
+    });
+  }
+}
+
 function startBackend() {
+  // 启动前清理可能占用的端口
+  cleanupPort(3001);
+  
   if (backendProcess) {
     console.log('Backend already running');
     return;
@@ -252,6 +271,9 @@ function startBackend() {
 }
 
 function startFrontend() {
+  // 启动前清理可能占用的端口
+  cleanupPort(5173);
+  
   if (frontendProcess) {
     console.log('Frontend already running');
     return;
