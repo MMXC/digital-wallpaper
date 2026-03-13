@@ -886,6 +886,9 @@
   <div class="toast" id="toast" style="display: none;"></div>
 
   <script>
+    // 确保DOM加载完成后再绑定事件
+    document.addEventListener('DOMContentLoaded', function() {
+    
     // Data
     const environments = [
       { id: 'city', name: '城市', icon: '🏙️', desc: '现代城市景观' },
@@ -907,6 +910,7 @@
     });
     
     function showPage(page) {
+      console.log('切换页面:', page);
       document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
       const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
       if (navItem) navItem.classList.add('active');
@@ -1310,6 +1314,8 @@
         document.getElementById('current-version').textContent = 'v' + data.version;
       } catch(e) {}
     }
+    
+    }); // DOMContentLoaded 结束
   </script>
 </body>
 </html>
