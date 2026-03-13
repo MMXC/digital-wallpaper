@@ -366,58 +366,46 @@
       });
     });
     
-    // 加载默认资产 - 动态检测本地目录
+    // 加载资源 - 动态扫描实际项目文件
     async function loadAssets() {
-      // 首先尝试从 API 获取资源列表
-      let apiResources = { environments: [], effects: [] };
+      let localAssets = { human: [], bg: [], effect: [], skybox: [] };
+      
+      // 从后端API获取实际资源列表
       try {
-        const res = await fetch('/api/resources');
-        apiResources = await res.json();
-      } catch (e) { console.log('API不可用，使用本地资源'); }
-      
-      // 动态检测本地 assets 目录下的文件
-      const detectLocalAssets = async (dir, type) => {
-        const assets = [];
-        const baseNames = {
-          human: ['human', 'avatar', 'person'],
-          bg: ['bg', 'background', 'wallpaper', 'scene'],
-          effect: ['effect', 'particle', 'fx']
-        };
-        const extensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'];
+        const res = await fetch('/api/assets/list');
+        const data = await res.json();
         
-        // 尝试常见的文件名模式
-        for (let i = 1; i <= 10; i++) {
-          for (const ext of extensions) {
-            for (const name of baseNames[type] || []) {
-              const filename = `${name}${i}${ext}`;
-              const src = `./assets/${type}/${filename}`;
-              try {
-                const response = await fetch(src, { method: 'HEAD' });
-                if (response.ok) {
-                  assets.push({ name: `${name}${i}`, src, tag: '预设' });
-                }
-              } catch (e) { /* 文件不存在 */ }
-            }
-          }
+        if (data.assets && data.assets.length > 0) {
+          // 按类型分组
+          data.assets.forEach(file => {
+            const asset = {
+              name: file.name,
+              src: file.src,
+              ext: file.ext,
+              tag: '预设'
+            };
+            
+            if (file.type === 'human') localAssets.human.push(asset);
+            else if (file.type === 'bg') localAssets.bg.push(asset);
+            else if (file.type === 'effect') localAssets.effect.push(asset);
+            else if (file.type === 'skybox') localAssets.skybox.push(asset);
+          });
         }
-        return assets;
-      };
+      } catch (e) {
+        console.log('API不可用，尝试本地检测');
+        // 回退：尝试常见文件名模式
+        localAssets = await detectAssetsFallback();
+      }
       
-      // 并行检测各类资源
-      const [localHuman, localBg, localEffect] = await Promise.all([
-        detectLocalAssets('human', 'human'),
-        detectLocalAssets('bg', 'bg'),
-        detectLocalAssets('effect', 'effect')
-      ]);
-      
-      // 合并资源列表（本地资源优先）
+      // 合并资源（默认 + 扫描到的）
       const assets = {
         human: [
           { name: '默认虚拟主播', src: './assets/default-avatar.svg', tag: '默认' },
-          ...localHuman
+          ...localAssets.human
         ],
-        bg: localBg,
-        effect: localEffect
+        bg: localAssets.bg,
+        effect: localAssets.effect,
+        skybox: localAssets.skybox
       };
       
       // 渲染数字人资产
@@ -475,6 +463,28 @@
           window.electronAPI?.selectAsset(type, src);
         });
       });
+    }
+    
+    // 回退方案：尝试常见文件名模式检测资源
+    async function detectAssetsFallback() {
+      const types = ['human', 'bg', 'effect'];
+      const extensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'];
+      const results = { human: [], bg: [], effect: [], skybox: [] };
+      
+      for (const type of types) {
+        for (let i = 1; i <= 20; i++) {
+          for (const ext of extensions) {
+            const src = `./assets/${type}/${type}${i}${ext}`;
+            try {
+              const res = await fetch(src, { method: 'HEAD' });
+              if (res.ok) {
+                results[type].push({ name: `${type}${i}`, src, tag: '预设' });
+              }
+            } catch (e) {}
+          }
+        }
+      }
+      return results;
     }
     
     // 文件导入处理

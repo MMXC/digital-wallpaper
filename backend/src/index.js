@@ -568,3 +568,44 @@ process.on('SIGTERM', () => {
 });
 
 export default app;
+
+// ============ 资源目录扫描 API ============
+app.get('/api/assets/list', (req, res) => {
+  const publicDir = join(dirname(fileURLToPath(import.meta.url)), '../public');
+  const assetsDir = join(publicDir, 'assets');
+  
+  const scanDir = (dir, basePath = '') => {
+    const result = [];
+    if (!existsSync(dir)) return result;
+    
+    try {
+      const files = readdirSync(dir);
+      for (const file of files) {
+        const fullPath = join(dir, file);
+        const stat = statSync(fullPath);
+        if (stat.isDirectory()) {
+          result.push(...scanDir(fullPath, `${basePath}/${file}`));
+        } else {
+          const ext = file.toLowerCase().slice(file.lastIndexOf('.'));
+          const validExts = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.mp4', '.webm'];
+          if (validExts.includes(ext)) {
+            result.push({
+              name: file.replace(ext, ''),
+              filename: file,
+              path: `${basePath}/${file}`,
+              src: `.${basePath}/${file}`,
+              ext: ext,
+              type: basePath.replace('/assets/', '') || 'other'
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('扫描目录失败:', e);
+    }
+    return result;
+  };
+  
+  const assets = scanDir(assetsDir);
+  res.json({ assets });
+});
