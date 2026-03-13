@@ -243,16 +243,57 @@ function startAllServices() {
 
 function stopBackend() {
   if (backendProcess) {
+    const pid = backendProcess.pid;
     backendProcess.kill();
     backendProcess = null;
+    
+    // Windows: 使用 taskkill 终止进程树，确保端口释放
+    if (process.platform === 'win32') {
+      // 先尝试杀死进程树
+      exec(`taskkill /pid ${pid} /T /F`, (err) => {
+        if (err) {
+          console.log('taskkill error:', err.message);
+          // fallback: 查找并杀死占用端口的 node 进程 (后端实际用 3001)
+          exec('netstat -ano | findstr :3001', (err2, stdout) => {
+            if (stdout) {
+              const match = stdout.match(/\s+(\d+)\s*$/);
+              if (match) {
+                exec(`taskkill /pid ${match[1]} /F`, () => {});
+              }
+            }
+          });
+        }
+      });
+    }
+    
     console.log('Backend stopped');
   }
 }
 
 function stopFrontend() {
   if (frontendProcess) {
+    const pid = frontendProcess.pid;
     frontendProcess.kill();
     frontendProcess = null;
+    
+    // Windows: 使用 taskkill 终止进程树，确保端口释放
+    if (process.platform === 'win32') {
+      exec(`taskkill /pid ${pid} /T /F`, (err) => {
+        if (err) {
+          console.log('taskkill error:', err.message);
+          // fallback: 查找并杀死占用端口的 node 进程 (前端用 18791)
+          exec('netstat -ano | findstr :18791', (err2, stdout) => {
+            if (stdout) {
+              const match = stdout.match(/\s+(\d+)\s*$/);
+              if (match) {
+                exec(`taskkill /pid ${match[1]} /F`, () => {});
+              }
+            }
+          });
+        }
+      });
+    }
+    
     console.log('Frontend stopped');
   }
 }
