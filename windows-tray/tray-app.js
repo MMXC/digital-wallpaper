@@ -340,6 +340,7 @@ function stopBackend() {
     }
     
     console.log('Backend stopped');
+    cleanupPort(3001);
   }
 }
 
@@ -368,6 +369,7 @@ function stopFrontend() {
     }
     
     console.log('Frontend stopped');
+    cleanupPort(18791);
   }
 }
 
@@ -439,6 +441,9 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   app.isQuitting = true;
   stopAllServices();
+  // 退出时清理占用端口
+  cleanupPort(3001);
+  cleanupPort(18791);
 });
 
 process.on('uncaughtException', (error) => {
