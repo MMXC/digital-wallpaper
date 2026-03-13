@@ -46,8 +46,8 @@ cd /d "%~dp0"
 
 echo [%date% %time%] [*] Launching Tray App >> "%LOG_FILE%"
 
-REM Launch tray app (minimized, no window)
+REM Launch tray app - 使用 /b 不开新窗口，隐藏运行
 cd /d "%~dp0windows-tray"
-start "" npx electron . --disable-gpu --no-sandbox
+start /b "" node . --disable-gpu --no-sandbox
 
 echo [%date% %time%] [=] Started >> "%LOG_FILE%"
