@@ -345,9 +345,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   
   // 根据 folder 参数保存到对应目录
   const folder = req.query.folder || 'uploads';
-  // 映射 avatar -> human
+  console.log('[上传] folder 参数:', folder);
+  
   const folderMap = { avatar: 'human', human: 'human', bg: 'bg', effect: 'effect' };
   const targetFolder = folderMap[folder] || 'uploads';
+  console.log('[上传] targetFolder:', targetFolder);
   let targetDir, targetUrl;
   
   if (targetFolder !== 'uploads') {
