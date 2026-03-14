@@ -951,7 +951,8 @@
     }
     
     function refreshPreview() {
-      document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
+      var frame = document.getElementById('preview-frame');
+      frame.src = frame.src.split('?')[0] + '?t=' + Date.now();
     }
     
     function openPreview() {
@@ -1039,7 +1040,8 @@
         console.log("Assets response:", data);
         showToast('已应用天空盒: ' + preset);
         setTimeout(function() {
-          document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
+          var frame = document.getElementById('preview-frame');
+          frame.src = frame.src.split('?')[0] + '?t=' + Date.now();
         }, 500);
       } catch(e) {
         showToast('应用失败: ' + e.message);
@@ -1168,7 +1170,8 @@
             }
             // 刷新预览
             setTimeout(function() {
-              document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
+              var frame = document.getElementById('preview-frame');
+              frame.src = frame.src.split('?')[0] + '?t=' + Date.now();
             }, 500);
           } catch(e) {
             showToast('应用失败: ' + e.message);
