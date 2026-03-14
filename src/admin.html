@@ -1143,8 +1143,9 @@
         // 特效页面专用
         const effectPageContainer = document.getElementById('builtin-effects-page');
         if (effectPageContainer) {
-          effectPageContainer.innerHTML = (data.builtIn && data.builtIn.effects ? data.builtIn.effects : [{id:'fireworks',name:'烟花',icon:'🎆'},{id:'rain',name:'雨',icon:'🌧️'},{id:'snow',name:'雪',icon:'❄️'},{id:'sunlight',name:'阳光',icon:'☀️'},{id:'stars',name:'星空',icon:'⭐'},{id:'leaves',name:'落叶',icon:'🍂'}]).map(function(e) {
-            return '<span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;font-size:14px;cursor:pointer;" onclick="applyBuiltInEffect(\''+e.id+'\')">' + e.icon + ' ' + e.name + '</span>';
+          const effectsList = (data.builtIn && data.builtIn.effects ? data.builtIn.effects : [{id:'fireworks',name:'烟花',icon:'🎆'},{id:'rain',name:'雨',icon:'🌧️'},{id:'snow',name:'雪',icon:'❄️'},{id:'sunlight',name:'阳光',icon:'☀️'},{id:'stars',name:'星空',icon:'⭐'},{id:'leaves',name:'落叶',icon:'🍂'}]);
+          effectPageContainer.innerHTML = effectsList.map(function(e) {
+            return '<span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;font-size:14px;cursor:pointer;" onclick="applyBuiltInEffect(\''+e.id+'\')">' + (e.icon || '✨') + ' ' + (e.name || e.id) + '</span>';
           }).join(' ');
         }
         
@@ -1159,8 +1160,9 @@
         // 数字人页面专用
         const humanPageContainer = document.getElementById('builtin-humans-page');
         if (humanPageContainer) {
-          humanPageContainer.innerHTML = (data.builtIn && data.builtIn.humans ? data.builtIn.humans : [{id:'assistant',name:'助手',icon:'🤖'},{id:'business',name:'商务',icon:'👔'},{id:'anime',name:'二次元',icon:'🎨'}]).map(function(e) {
-            return '<span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;font-size:14px;cursor:pointer;" onclick="applyBuiltInHuman(\''+e.id+'\')">' + e.icon + ' ' + e.name + '</span>';
+          const humansList = (data.builtIn && data.builtIn.humans ? data.builtIn.humans : [{id:'assistant',name:'助手',icon:'🤖'},{id:'business',name:'商务',icon:'👔'},{id:'anime',name:'二次元',icon:'🎨'}]);
+          humanPageContainer.innerHTML = humansList.map(function(e) {
+            return '<span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;font-size:14px;cursor:pointer;" onclick="applyBuiltInHuman(\''+e.id+'\')">' + (e.icon || '👤') + ' ' + (e.name || e.id) + '</span>';
           }).join(' ');
         }
       } catch(e) {
