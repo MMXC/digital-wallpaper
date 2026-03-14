@@ -11,7 +11,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync, rmSync, promises as fs } from 'fs';
 
 // 导入 Slack 和 WebSocket 模块
 import { initSlackClient, onMessage, startPolling, stopPolling, simulateMessage, slackConfig } from './slack.js';
@@ -337,18 +337,40 @@ const upload = multer({
 });
 
 // 上传文件
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: '没有文件' });
     return;
   }
+  
+  // 根据 folder 参数保存到对应目录
+  const folder = req.query.folder || 'uploads';
+  let targetDir, targetUrl;
+  
+  if (['human', 'bg', 'effect'].includes(folder)) {
+    targetDir = join(dirname(fileURLToPath(import.meta.url)), `../public/assets/${folder}`);
+    targetUrl = `/assets/${folder}/${req.file.filename}`;
+  } else {
+    targetDir = join(dirname(fileURLToPath(import.meta.url)), `../public/uploads`);
+    targetUrl = `/uploads/${req.file.filename}`;
+  }
+  
+  // 确保目录存在
+  if (!existsSync(targetDir)) {
+    mkdirSync(targetDir, { recursive: true });
+  }
+  
+  // 移动文件到目标目录
+  const sourcePath = req.file.path;
+  const targetPath = join(targetDir, req.file.filename);
+  await fs.promises.rename(sourcePath, targetPath);
   
   const fileInfo = {
     filename: req.file.filename,
     originalName: req.file.originalname,
     size: req.file.size,
     mimetype: req.file.mimetype,
-    url: '/uploads/' + req.file.filename,
+    url: targetUrl,
     uploadedAt: new Date().toISOString()
   };
   
