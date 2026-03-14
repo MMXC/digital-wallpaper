@@ -674,7 +674,7 @@
           <h3>上传数字人</h3>
           <!-- 使用包裹层触发文件选择，确保兼容性 -->
           <div style="position:relative;display:inline-block;">
-            <input type="file" id="file-avatar" accept="image/*" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleAssetUpload(this, 'human')">
+            <input type="file" id="file-human" accept="image/*" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleAssetUpload(this, 'avatar')">
             <span class="btn btn-secondary">📂 选择图片</span>
           </div>
           <span id="avatar-filename" style="margin-left:12px;color:var(--text-secondary)"></span>
@@ -1195,7 +1195,7 @@
       const formData = new FormData();
       formData.append('file', file);
       
-      const folder = type === 'human' ? 'human' : type === 'bg' ? 'bg' : 'effect';
+      const folder = type === 'avatar' ? 'human' : type === 'bg' ? 'bg' : 'effect';
       
       try {
         showToast('上传中...');
