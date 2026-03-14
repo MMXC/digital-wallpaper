@@ -27,6 +27,9 @@
     }
     
     loadConfig();
+    
+    // 监听配置更新 - 使用轮询而非WebSocket
+    setInterval(loadConfig, 3000);
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">

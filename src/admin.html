@@ -930,6 +930,7 @@
       
       if (page === 'messages') refreshMessages();
       if (page === 'contracts') loadContracts();
+      if (page === 'messages') loadMessages();
       if (page === 'settings') loadRuntimeConfig();
       if (page === 'updates') { loadVersion(); checkForUpdates(); loadResources(); loadUploadedFiles(); }
       if (page === 'avatars' || page === 'backgrounds' || page === 'effects' || page === 'environments') {
@@ -983,13 +984,25 @@
       refreshMessages();
     }
     
-    async function loadContracts() {
+    async function loadMessages() {
       try {
         const res = await fetch('/api/messages');
         const data = await res.json();
+        const container = document.getElementById('messages-container');
+        if (container) {
+          container.innerHTML = JSON.stringify(data, null, 2);
+        }
+      } catch(e) { console.log('加载消息失败:', e); }
+    }
+    
+    async function loadContracts() {
+      // 显示帮助文档/协议格式
+      try {
+        const res = await fetch('/api/protocols/help');
+        const text = await res.text();
         const container = document.getElementById('contracts-content');
-        if (container && data.messages) {
-          container.textContent = JSON.stringify(data.messages, null, 2);
+        if (container) {
+          container.textContent = text;
         }
       } catch(e) { 
         console.log('加载契约失败:', e);
