@@ -962,6 +962,7 @@
       try {
         const res = await fetch('/api/messages');
         const data = await res.json();
+        console.log("Assets response:", data);
         const container = document.getElementById('messages-container');
         if (container && data.messages) {
           container.innerHTML = data.messages.map(function(m) {
@@ -988,6 +989,7 @@
       try {
         const res = await fetch('/api/config/runtime');
         const data = await res.json();
+        console.log("Assets response:", data);
         if (data.config) {
           document.getElementById('agents-config').value = JSON.stringify(data.config.agents || [], null, 2);
           document.getElementById('avatars-config').value = JSON.stringify(data.config.avatars || [], null, 2);
@@ -1034,6 +1036,7 @@
           body: JSON.stringify({ preset: preset })
         });
         const data = await res.json();
+        console.log("Assets response:", data);
         showToast('已应用天空盒: ' + preset);
         setTimeout(function() {
           document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
@@ -1053,6 +1056,7 @@
       try {
         const res = await fetch('/api/version');
         const data = await res.json();
+        console.log("Assets response:", data);
         document.getElementById('current-version').textContent = '当前版本: ' + data.version;
       } catch(e) {
         console.log('获取版本失败:', e);
@@ -1063,6 +1067,7 @@
       try {
         const res = await fetch('/api/update/check');
         const data = await res.json();
+        console.log("Assets response:", data);
         if (data.latest && data.latest !== data.version) {
           showToast('发现新版本: v' + data.latest);
         }
@@ -1075,6 +1080,7 @@
       try {
         const res = await fetch('/api/resources');
         const data = await res.json();
+        console.log("Assets response:", data);
         
         const envContainer = document.getElementById('builtin-environments');
         if (envContainer && data.builtIn && data.builtIn.environments) {
@@ -1095,19 +1101,29 @@
     }
     
     async function loadLocalAssets() {
+      console.log("Loading local assets...");
       try {
         const res = await fetch('/api/assets/list');
         const data = await res.json();
+        console.log("Assets response:", JSON.stringify(data).substring(0, 500));
         
-        if (!data.assets || data.assets.length === 0) return;
+        if (!data.assets || data.assets.length === 0) {
+          console.log("No assets found");
+          return;
+        }
         
         const byType = { human: [], bg: [], effect: [], skybox: [] };
         data.assets.forEach(function(file) {
           const type = file.type || 'other';
+          console.log("Found file:", file.name, "type:", type);
           if (byType[type]) {
             byType[type].push(file);
+          } else {
+            console.log("Unknown type:", type, "for file:", file.name);
           }
         });
+        
+        console.log("Categorized:", byType);
         
         const makeCard = function(f) {
           const imgHtml = (f.ext === '.png' || f.ext === '.jpg' || f.ext === '.jpeg' || f.ext === '.gif' || f.ext === '.svg' || f.ext === '.webp') 
@@ -1140,21 +1156,7 @@
           envGrid.innerHTML = byType.skybox.map(makeCard).join('') || '<div style="color:#888">无本地天空盒资源</div>';
         }
         
-        // 使用事件委托
-        const resourcesGrid = document.getElementById('local-resources-grid');
-        if (resourcesGrid && !resourcesGrid.dataset.bound) {
-          resourcesGrid.dataset.bound = 'true';
-          resourcesGrid.addEventListener('click', function(e) {
-            const card = e.target.closest('.resource-card');
-            if (card) {
-              const src = card.dataset.src;
-              console.log('选择资源:', src);
-              showToast('已选择: ' + src);
-            }
-          });
-        }
-        
-        console.log('本地资源已加载');
+        console.log('本地资源已加载, count:', data.assets.length);
       } catch(e) {
         console.log('扫描本地资源失败:', e);
       }
@@ -1271,6 +1273,7 @@
       try {
         const res = await fetch('/api/uploads');
         const data = await res.json();
+        console.log("Assets response:", data);
         const container = document.getElementById('uploaded-files');
         if (container && data.files) {
           container.innerHTML = data.files.map(function(f) {
