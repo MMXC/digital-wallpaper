@@ -242,6 +242,13 @@ app.put('/api/config/environment', (req, res) => {
   res.json({ success: true, config });
 });
 
+app.put('/api/config/background', (req, res) => {
+  const { mode, src } = req.body;
+  configStore.updateConfig({ background: { mode, src } });
+  broadcast({ type: 'background_update', data: { mode, src } });
+  res.json({ success: true, background: { mode, src } });
+});
+
 app.put('/api/config/avatars', (req, res) => {
   const { avatars } = req.body;
   const config = configStore.updateAvatars(avatars);

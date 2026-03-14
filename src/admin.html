@@ -1139,16 +1139,39 @@
         };
         
         // 添加应用资源函数
-        window.applyResource = function(type, src) {
+        window.applyResource = async function(type, src) {
           console.log('应用资源:', type, src);
-          if (type === 'bg') {
-            showToast('应用背景: ' + src);
-          } else if (type === 'human') {
-            showToast('应用数字人: ' + src);
-          } else if (type === 'effect') {
-            showToast('应用特效: ' + src);
-          } else {
-            showToast('已选择: ' + src);
+          try {
+            if (type === 'bg') {
+              await fetch('/api/config/background', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: 'image', src: src })
+              });
+              showToast('已应用背景: ' + src);
+            } else if (type === 'human') {
+              await fetch('/api/config/avatars', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatar: src })
+              });
+              showToast('已应用数字人: ' + src);
+            } else if (type === 'effect') {
+              await fetch('/api/config/effect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ src: src })
+              });
+              showToast('已应用特效: ' + src);
+            } else {
+              showToast('已选择: ' + src);
+            }
+            // 刷新预览
+            setTimeout(function() {
+              document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
+            }, 500);
+          } catch(e) {
+            showToast('应用失败: ' + e.message);
           }
         };
         
