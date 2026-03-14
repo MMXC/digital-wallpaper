@@ -941,7 +941,8 @@
       if (page === 'contracts') loadContracts();
       if (page === 'messages') loadMessages();
       if (page === 'settings') loadRuntimeConfig();
-      if (page === 'updates') { loadVersion(); checkForUpdates(); loadResources(); loadUploadedFiles(); }
+      if (page === 'updates') { loadVersion(); checkForUpdates(); loadUploadedFiles(); }
+      if (page === 'effects' || page === 'avatars' || page === 'environments' || page === 'updates') { loadResources(); }
       if (page === 'avatars' || page === 'backgrounds' || page === 'effects' || page === 'environments') {
         loadLocalAssets();
       }
