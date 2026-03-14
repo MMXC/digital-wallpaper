@@ -343,25 +343,9 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     return;
   }
   
-  // 临时：直接根据URL路径判断目录
-  const url = req.headers.referer || '';
-  let targetFolder = 'uploads';
-  
-  if (url.includes('/avatars') || url.includes('数字人')) {
-    targetFolder = 'human';
-  } else if (url.includes('/backgrounds') || url.includes('背景')) {
-    targetFolder = 'bg';
-  } else if (url.includes('/effects') || url.includes('特效')) {
-    targetFolder = 'effect';
-  }
-  
-  // 如果前端传了folder参数，用前端的
-  const folder = req.query.folder;
-  if (folder && ['human', 'bg', 'effect'].includes(folder)) {
-    targetFolder = folder;
-  }
-  
-  console.log('[上传] referer:', url, '-> targetFolder:', targetFolder, '-> folder param:', folder);
+  // 临时：强制使用human目录
+  let targetFolder = 'human';
+  console.log('[上传] 强制使用 targetFolder:', targetFolder);
   let targetDir, targetUrl;
   
   if (targetFolder !== 'uploads') {
