@@ -248,7 +248,18 @@ app.put('/api/config/background', (req, res) => {
 });
 
 app.put('/api/config/avatars', (req, res) => {
-  const { avatars } = req.body;
+  const { avatars, avatar } = req.body;
+  
+  // 如果传的是单个 avatar（应用数字人图片）
+  if (avatar) {
+    configStore.updateConfig({ currentAvatar: avatar });
+    dynamicAvatar = avatar;
+    broadcast({ type: 'avatar_update', data: { avatar: avatar } });
+    res.json({ success: true, avatar: avatar });
+    return;
+  }
+  
+  // 如果传的是整个 avatars 数组
   const config = configStore.updateAvatars(avatars);
   dynamicAvatar = avatars;
   broadcast({ type: 'avatars_update', data: config.avatars });

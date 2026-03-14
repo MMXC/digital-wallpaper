@@ -19,6 +19,7 @@ const defaultConfig = {
     { id: 'zhongshu', name: '中书省', role: '规划决策', status: 'busy', color: '#3b82f6' },
     { id: 'shangshu', name: '尚书省', role: '执行派发', status: 'idle', color: '#10b981' }
   ],
+  currentAvatar: null, // 当前应用的数字人头像
   tasks: [
     { id: 1, title: '调研方案', agent: '中书省', status: 'in-progress', priority: 'high' },
     { id: 2, title: '开发实现', agent: '尚书省', status: 'pending', priority: 'medium' }
