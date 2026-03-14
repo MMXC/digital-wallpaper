@@ -1118,10 +1118,12 @@
     }
     
     async function loadResources() {
+      window.builtInData = null;
       try {
         const res = await fetch('/api/resources');
         const data = await res.json();
         console.log("Built-in resources:", data);
+        window.builtInData = data.builtIn || {};
         console.log("Effects from API:", data.builtIn ? data.builtIn.effects : "NO effects");
         
         // 环境
@@ -1253,10 +1255,13 @@
         window.applyBuiltInEffect = async function(effectId) {
           console.log('应用内置特效:', effectId);
           try {
+            const builtIn = window.builtInData || { effects: [{id:'fireworks',name:'烟花',icon:'🎆'},{id:'rain',name:'雨',icon:'🌧️'},{id:'snow',name:'雪',icon:'❄️'},{id:'sunlight',name:'阳光',icon:'☀️'},{id:'stars',name:'星空',icon:'⭐'},{id:'leaves',name:'落叶',icon:'🍂'}] };
+            const effectsList = builtIn.effects || [];
+            const effect = effectsList.find(function(e) { return e.id === effectId; });
             await fetch('/api/config/effect', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: effectId })
+              body: JSON.stringify({ effect: effect || { id: effectId, name: effectId } })
             });
             showToast('已应用特效: ' + effectId);
             // 刷新预览
@@ -1273,10 +1278,13 @@
         window.applyBuiltInHuman = async function(humanId) {
           console.log('应用内置数字人:', humanId);
           try {
+            const builtIn = window.builtInData || { humans: [{id:'assistant',name:'助手',icon:'🤖'},{id:'business',name:'商务',icon:'👔'},{id:'anime',name:'二次元',icon:'🎨'}] };
+            const humansList = builtIn.humans || [];
+            const human = humansList.find(function(e) { return e.id === humanId; });
             await fetch('/api/config/avatars', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: humanId })
+              body: JSON.stringify({ avatars: [{ id: humanId, name: (human && human.name) || humanId, role: '数字人', status: 'idle', color: '#8b5cf6' }] })
             });
             showToast('已应用数字人: ' + humanId);
             // 刷新预览
