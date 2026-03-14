@@ -354,9 +354,15 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     return;
   }
   
-  // 临时：强制使用human目录
-  let targetFolder = 'human';
-  console.log('[上传] 强制使用 targetFolder:', targetFolder);
+  // 根据 folder 参数保存到对应目录
+  const folder = req.query.folder || 'uploads';
+  let targetFolder = folder;
+  
+  // 目录映射
+  const folderMap = { human: 'human', bg: 'bg', effect: 'effect', uploads: 'uploads' };
+  targetFolder = folderMap[targetFolder] || 'uploads';
+  
+  console.log('[上传] folder:', folder, '-> targetFolder:', targetFolder);
   let targetDir, targetUrl;
   
   if (targetFolder !== 'uploads') {
