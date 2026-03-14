@@ -622,3 +622,33 @@ app.post('/api/config/reload-preview', (req, res) => {
   broadcast({ type: 'preview_reload', data: {} });
   res.json({ success: true });
 });
+
+// 内置资源
+app.get('/api/resources', (req, res) => {
+  const builtIn = {
+    environments: [
+      { id: 'city', name: '城市', icon: '🏙️', desc: '现代城市景观' },
+      { id: 'sunset', name: '日落', icon: '🌅', desc: '暖色调日落' },
+      { id: 'night', name: '夜晚', icon: '🌃', desc: '城市夜景' },
+      { id: 'forest', name: '森林', icon: '🌲', desc: '自然森林' },
+      { id: 'dawn', name: '黎明', icon: '🌅', desc: '清晨日出' },
+      { id: 'studio', name: '工作室', icon: '🎬', desc: '专业摄影棚' },
+      { id: 'park', name: '公园', icon: '🌳', desc: '郊外公园' },
+      { id: 'lobby', name: '大堂', icon: '🏨', desc: '酒店大堂' },
+    ],
+    effects: [
+      { id: 'fireworks', name: '烟花', icon: '🎆', desc: '节日烟花效果' },
+      { id: 'rain', name: '雨', icon: '🌧️', desc: '雨天雨滴效果' },
+      { id: 'snow', name: '雪', icon: '❄️', desc: '飘雪效果' },
+      { id: 'sunlight', name: '阳光', icon: '☀️', desc: '洒落的光线' },
+      { id: 'stars', name: '星空', icon: '⭐', desc: '夜空星星' },
+      { id: 'leaves', name: '落叶', icon: '🍂', desc: '飘落的树叶' },
+    ],
+    humans: [
+      { id: 'assistant', name: '助手', icon: '🤖', desc: 'AI 助手形象' },
+      { id: 'business', name: '商务', icon: '👔', desc: '商务人士' },
+      { id: 'anime', name: '二次元', icon: '🎨', desc: '动漫风格' },
+    ]
+  };
+  res.json({ builtIn });
+});

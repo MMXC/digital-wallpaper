@@ -799,6 +799,10 @@
             <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">特效</div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="builtin-effects"></div>
           </div>
+          <div>
+            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">数字人</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;" id="builtin-humans"></div>
+          </div>
         </div>
         
         <div class="card">
@@ -1106,20 +1110,30 @@
       try {
         const res = await fetch('/api/resources');
         const data = await res.json();
-        console.log("Assets response:", data);
+        console.log("Built-in resources:", data);
         
+        // 环境
         const envContainer = document.getElementById('builtin-environments');
         if (envContainer && data.builtIn && data.builtIn.environments) {
           envContainer.innerHTML = data.builtIn.environments.map(function(e) {
-            return '<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">' + e.name + '</span>';
-          }).join('');
+            return '<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">' + e.icon + ' ' + e.name + '</span>';
+          }).join(' ');
         }
         
+        // 特效
         const effectContainer = document.getElementById('builtin-effects');
         if (effectContainer && data.builtIn && data.builtIn.effects) {
           effectContainer.innerHTML = data.builtIn.effects.map(function(e) {
-            return '<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">' + e.name + '</span>';
-          }).join('');
+            return '<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">' + e.icon + ' ' + e.name + '</span>';
+          }).join(' ');
+        }
+        
+        // 数字人
+        const humanContainer = document.getElementById('builtin-humans');
+        if (humanContainer && data.builtIn && data.builtIn.humans) {
+          humanContainer.innerHTML = data.builtIn.humans.map(function(e) {
+            return '<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">' + e.icon + ' ' + e.name + '</span>';
+          }).join(' ');
         }
       } catch(e) {
         console.log('加载资源失败:', e);
