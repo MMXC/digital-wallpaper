@@ -593,7 +593,7 @@ app.get('/api/assets/list', (req, res) => {
               name: file.replace(ext, ''),
               filename: file,
               path: `${basePath}/${file}`,
-              src: `.${basePath}/${file}`,
+              src: `/assets${basePath}/${file}`,
               ext: ext,
               type: (basePath.replace('/assets/', '') || '/').replace(/^\//, '') || 'other'
             });
