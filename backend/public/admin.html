@@ -672,8 +672,11 @@
         
         <div class="card" style="margin-top: 16px;">
           <h3>上传数字人</h3>
-          <input type="file" id="file-avatar" accept="image/*" style="display:none" onchange="handleAssetUpload(this, 'human')">
-          <label for="file-avatar" class="btn btn-secondary" style="cursor:pointer;display:inline-block;">📂 选择图片</label>
+          <!-- 使用包裹层触发文件选择，确保兼容性 -->
+          <div style="position:relative;display:inline-block;">
+            <input type="file" id="file-avatar" accept="image/*" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleAssetUpload(this, 'human')">
+            <span class="btn btn-secondary">📂 选择图片</span>
+          </div>
           <span id="avatar-filename" style="margin-left:12px;color:var(--text-secondary)"></span>
           <div id="avatar-preview" style="margin-top:12px;display:none;">
             <img id="avatar-preview-img" style="max-width:200px;max-height:120px;border-radius:8px;" />
@@ -698,8 +701,10 @@
         
         <div class="card" style="margin-top: 16px;">
           <h3>上传背景</h3>
-          <input type="file" id="file-bg" accept="image/*" style="display:none" onchange="handleAssetUpload(this, 'bg')">
-          <label for="file-bg" class="btn btn-secondary" style="cursor:pointer;display:inline-block;">📂 选择图片</label>
+          <div style="position:relative;display:inline-block;">
+            <input type="file" id="file-bg" accept="image/*" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleAssetUpload(this, 'bg')">
+            <span class="btn btn-secondary">📂 选择图片</span>
+          </div>
           <span id="bg-filename" style="margin-left:12px;color:var(--text-secondary)"></span>
           <div id="bg-preview" style="margin-top:12px;display:none;">
             <img id="bg-preview-img" style="max-width:200px;max-height:120px;border-radius:8px;" />
@@ -724,8 +729,10 @@
         
         <div class="card" style="margin-top: 16px;">
           <h3>上传特效</h3>
-          <input type="file" id="file-effect" accept="image/gif,video/*" style="display:none" onchange="handleAssetUpload(this, 'effect')">
-          <label for="file-effect" class="btn btn-secondary" style="cursor:pointer;display:inline-block;">📂 选择文件</label>
+          <div style="position:relative;display:inline-block;">
+            <input type="file" id="file-effect" accept="image/gif,video/*" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleAssetUpload(this, 'effect')">
+            <span class="btn btn-secondary">📂 选择文件</span>
+          </div>
           <span id="effect-filename" style="margin-left:12px;color:var(--text-secondary)"></span>
           <div id="effect-preview" style="margin-top:12px;display:none;">
             <img id="effect-preview-img" style="max-width:200px;max-height:120px;border-radius:8px;" />
@@ -814,8 +821,10 @@
           
           <div class="form-group">
             <label class="form-label">选择文件</label>
-            <input type="file" id="upload-file" accept=".zip,.json,.png,.jpg,.jpeg,.gif,.webp" style="display: none;" onchange="handleFileSelect(event)">
-            <label for="upload-file" class="btn btn-secondary" style="cursor:pointer;display:inline-block;">📂 选择文件</label>
+            <div style="position:relative;display:inline-block;">
+              <input type="file" id="upload-file" accept=".zip,.json,.png,.jpg,.jpeg,.gif,.webp" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleFileSelect(event)">
+              <span class="btn btn-secondary">📂 选择文件</span>
+            </div>
             <span id="upload-filename" style="margin-left: 12px; color: var(--text-secondary);"></span>
           </div>
           
