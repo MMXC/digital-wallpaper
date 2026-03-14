@@ -1142,8 +1142,8 @@
         
         // 特效页面专用
         const effectPageContainer = document.getElementById('builtin-effects-page');
-        if (effectPageContainer && data.builtIn && data.builtIn.effects) {
-          effectPageContainer.innerHTML = data.builtIn.effects.map(function(e) {
+        if (effectPageContainer) {
+          effectPageContainer.innerHTML = (data.builtIn ? data.builtIn.effects : []).map(function(e) {
             return '<span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;font-size:14px;cursor:pointer;" onclick="applyBuiltInEffect(\''+e.id+'\')">' + e.icon + ' ' + e.name + '</span>';
           }).join(' ');
         }
@@ -1158,8 +1158,8 @@
         
         // 数字人页面专用
         const humanPageContainer = document.getElementById('builtin-humans-page');
-        if (humanPageContainer && data.builtIn && data.builtIn.humans) {
-          humanPageContainer.innerHTML = data.builtIn.humans.map(function(e) {
+        if (humanPageContainer) {
+          humanPageContainer.innerHTML = (data.builtIn ? data.builtIn.humans : []).map(function(e) {
             return '<span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;font-size:14px;cursor:pointer;" onclick="applyBuiltInHuman(\''+e.id+'\')">' + e.icon + ' ' + e.name + '</span>';
           }).join(' ');
         }
