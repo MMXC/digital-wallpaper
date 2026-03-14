@@ -360,10 +360,17 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     mkdirSync(targetDir, { recursive: true });
   }
   
-  // 移动文件到目标目录
+  // 移动文件到目标目录（跨目录移动使用 copy + unlink）
   const sourcePath = req.file.path;
   const targetPath = join(targetDir, req.file.filename);
-  await fs.promises.rename(sourcePath, targetPath);
+  try {
+    await fs.promises.copyFile(sourcePath, targetPath);
+    await fs.promises.unlink(sourcePath);
+  } catch (e) {
+    console.error('移动文件失败:', e);
+    res.status(500).json({ error: '保存文件失败: ' + e.message });
+    return;
+  }
   
   const fileInfo = {
     filename: req.file.filename,
