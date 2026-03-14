@@ -13,6 +13,24 @@
       } catch(e) { console.log('加载配置失败:', e); }
     }
     
+    function copyStaticPath() {
+      // 获取当前静态资源的完整URL
+      let staticUrl = window.location.href;
+      // 如果有图片参数则复制图片URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const src = urlParams.get('src');
+      if (src) staticUrl = window.location.origin + src;
+      else if (currentConfig.background && currentConfig.background.src) staticUrl = window.location.origin + currentConfig.background.src;
+      else if (currentConfig.environment && currentConfig.environment.preset) staticUrl = currentConfig.environment.preset;
+      
+      navigator.clipboard.writeText(staticUrl).then(function() {
+        alert('路径已复制: ' + staticUrl);
+      }).catch(function() {
+        alert('复制失败: ' + staticUrl);
+      });
+    }
+    
+    
     function applyConfig() {
       // 根据配置应用背景、数字人等
       if (currentConfig.background) {
@@ -161,6 +179,7 @@
   
   <div class="controls">
     <button id="btn-export" onclick="window.open('/export.html', '_blank')">📥 导出</button>
+    <button id="btn-copy" onclick="copyStaticPath()">📋 复制路径</button>
     <button id="btn-autoplay" class="active">▶ 自动旋转</button>
     <button id="btn-fullscreen">⛶ 全屏</button>
     <button id="btn-vr">🥽 VR 模式</button>
