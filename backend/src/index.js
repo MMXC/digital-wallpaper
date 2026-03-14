@@ -345,11 +345,14 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   
   // 根据 folder 参数保存到对应目录
   const folder = req.query.folder || 'uploads';
+  // 映射 avatar -> human
+  const folderMap = { avatar: 'human', human: 'human', bg: 'bg', effect: 'effect' };
+  const targetFolder = folderMap[folder] || 'uploads';
   let targetDir, targetUrl;
   
-  if (['human', 'bg', 'effect'].includes(folder)) {
-    targetDir = join(dirname(fileURLToPath(import.meta.url)), `../public/assets/${folder}`);
-    targetUrl = `/assets/${folder}/${req.file.filename}`;
+  if (targetFolder !== 'uploads') {
+    targetDir = join(dirname(fileURLToPath(import.meta.url)), `../public/assets/${targetFolder}`);
+    targetUrl = `/assets/${targetFolder}/${req.file.filename}`;
   } else {
     targetDir = join(dirname(fileURLToPath(import.meta.url)), `../public/uploads`);
     targetUrl = `/uploads/${req.file.filename}`;
