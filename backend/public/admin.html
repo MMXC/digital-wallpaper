@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>数字人壁纸 - 管理中心</title>
@@ -679,14 +682,14 @@
           <h3>上传数字人</h3>
           <!-- 使用包裹层触发文件选择，确保兼容性 -->
           <div style="position:relative;display:inline-block;">
-            <input type="file" id="file-human" accept="image/*" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleAssetUpload(this, 'avatar')">
+            <input type="file" id="file-human" accept="image/*" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;" onchange="handleAssetUpload(this, 'human')">
             <span class="btn btn-secondary">📂 选择图片</span>
           </div>
           <span id="avatar-filename" style="margin-left:12px;color:var(--text-secondary)"></span>
           <div id="avatar-preview" style="margin-top:12px;display:none;">
             <img id="avatar-preview-img" style="max-width:200px;max-height:120px;border-radius:8px;" />
           </div>
-          <button class="btn btn-primary" style="margin-left:8px" onclick="uploadAsset('human')">⬆️ 上传</button>
+          <button class="btn btn-primary" style="margin-left:8px" onclick="alert('clicked: human');uploadAsset('human')">⬆️ 上传</button>
         </div>
       </div>
       
@@ -714,7 +717,7 @@
           <div id="bg-preview" style="margin-top:12px;display:none;">
             <img id="bg-preview-img" style="max-width:200px;max-height:120px;border-radius:8px;" />
           </div>
-          <button class="btn btn-primary" style="margin-left:8px" onclick="uploadAsset('bg')">⬆️ 上传</button>
+          <button class="btn btn-primary" style="margin-left:8px" onclick="alert('clicked: bg');uploadAsset('bg')">⬆️ 上传</button>
         </div>
       </div>
       
@@ -747,7 +750,7 @@
           <div id="effect-preview" style="margin-top:12px;display:none;">
             <img id="effect-preview-img" style="max-width:200px;max-height:120px;border-radius:8px;" />
           </div>
-          <button class="btn btn-primary" style="margin-left:8px" onclick="uploadAsset('effect')">⬆️ 上传</button>
+          <button class="btn btn-primary" style="margin-left:8px" onclick="alert('clicked: effect');uploadAsset('effect')">⬆️ 上传</button>
         </div>
       </div>
       
@@ -1367,7 +1370,7 @@
       const formData = new FormData();
       formData.append('file', file);
       
-      const folder = type === 'avatar' ? 'human' : type === 'bg' ? 'bg' : 'effect';
+      const folder = type; // 直接用type作为folder
       
       try {
         showToast('上传中...');
