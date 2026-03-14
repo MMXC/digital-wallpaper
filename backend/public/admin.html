@@ -727,6 +727,11 @@
           <div class="resource-grid" id="local-effects"></div>
         </div>
         
+        <div class="card" style="margin-top:16px;">
+          <h3>内置特效</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;" id="builtin-effects-page"></div>
+        </div>
+        
         <div class="card" style="margin-top: 16px;">
           <h3>上传特效</h3>
           <div style="position:relative;display:inline-block;">
@@ -1128,6 +1133,14 @@
           }).join(' ');
         }
         
+        // 特效页面专用
+        const effectPageContainer = document.getElementById('builtin-effects-page');
+        if (effectPageContainer && data.builtIn && data.builtIn.effects) {
+          effectPageContainer.innerHTML = data.builtIn.effects.map(function(e) {
+            return '<span style="padding:8px 16px;background:var(--bg-tertiary);border-radius:8px;font-size:14px;cursor:pointer;" onclick="applyBuiltInEffect(\''+e.id+'\')">' + e.icon + ' ' + e.name + '</span>';
+          }).join(' ');
+        }
+        
         // 数字人
         const humanContainer = document.getElementById('builtin-humans');
         if (humanContainer && data.builtIn && data.builtIn.humans) {
@@ -1217,6 +1230,12 @@
           } catch(e) {
             showToast('应用失败: ' + e.message);
           }
+        };
+        
+        // 应用内置特效
+        window.applyBuiltInEffect = async function(effectId) {
+          console.log('应用内置特效:', effectId);
+          showToast('应用特效: ' + effectId);
         };
         
         const avatarsGrid = document.getElementById('local-avatars');
