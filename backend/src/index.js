@@ -203,33 +203,25 @@ app.get('/api/slack/status', (req, res) => {
 });
 
 // 前端配置（Agent列表、头像、名称等）
+
 app.get('/api/config', (req, res) => {
-  // 优先使用动态数据，否则用环境变量
   const agents = (dynamicAgents && dynamicAgents.length > 0) ? dynamicAgents : (parseJsonEnv('AGENT_LIST') || null);
   const tasks = (dynamicTasks && dynamicTasks.length > 0) ? dynamicTasks : null;
 
   const config = {
-    // WebSocket 地址
     wsUrl: process.env.WS_URL || 'ws://localhost:3001',
-
-    // Agent 列表（优先动态）
     agents: agents,
-
-    // Agent 头像映射
     avatars: parseJsonEnv('AGENT_AVATARS') || {},
-
-    // Agent 名称映射
     names: parseJsonEnv('AGENT_NAMES') || {},
-
-    // 任务列表（优先动态）
     tasks: tasks,
-
-    // 背景配置（优先动态）
     background: dynamicBackground || {
       mode: process.env.BACKGROUND_MODE || 'environment',
       preset: process.env.BACKGROUND_PRESET || 'city',
       color: process.env.BACKGROUND_COLOR || '#0f172a',
-    }
+    },
+    environment: configStore.get().environment || { preset: 'city' },
+    avatar: configStore.get().avatar || null,
+    effects: configStore.get().effects || []
   };
   res.json(config);
 });
@@ -615,4 +607,9 @@ app.get('/api/assets/list', (req, res) => {
   
   const assets = scanDir(assetsDir);
   res.json({ assets });
+});
+
+app.post('/api/config/reload-preview', (req, res) => {
+  broadcast({ type: 'preview_reload', data: {} });
+  res.json({ success: true });
 });

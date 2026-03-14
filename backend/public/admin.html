@@ -941,7 +941,8 @@
       const toast = document.getElementById('toast');
       toast.textContent = msg;
       toast.style.display = 'block';
-      setTimeout(function() { toast.style.display = 'none'; }, 3000);
+      fetch('/api/config/reload-preview', { method: 'POST' });
+            setTimeout(function() { toast.style.display = 'none'; }, 3000);
     }
     
     async function refreshAll() {
@@ -1039,7 +1040,8 @@
         const data = await res.json();
         console.log("Assets response:", data);
         showToast('已应用天空盒: ' + preset);
-        setTimeout(function() {
+        fetch('/api/config/reload-preview', { method: 'POST' });
+            setTimeout(function() {
           var frame = document.getElementById('preview-frame');
           frame.src = frame.src.split('?')[0] + '?t=' + Date.now();
         }, 500);
@@ -1169,6 +1171,7 @@
               showToast('已选择: ' + src);
             }
             // 刷新预览
+            fetch('/api/config/reload-preview', { method: 'POST' });
             setTimeout(function() {
               var frame = document.getElementById('preview-frame');
               frame.src = frame.src.split('?')[0] + '?t=' + Date.now();
