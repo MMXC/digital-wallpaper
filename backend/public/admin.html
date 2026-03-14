@@ -1122,6 +1122,7 @@
         const res = await fetch('/api/resources');
         const data = await res.json();
         console.log("Built-in resources:", data);
+        console.log("Effects from API:", data.builtIn ? data.builtIn.effects : "NO effects");
         
         // 环境
         const envContainer = document.getElementById('builtin-environments');
