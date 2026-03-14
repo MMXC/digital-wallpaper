@@ -214,6 +214,10 @@ app.get('/api/config', (req, res) => {
     avatars: parseJsonEnv('AGENT_AVATARS') || {},
     names: parseJsonEnv('AGENT_NAMES') || {},
     tasks: tasks,
+    environment: dynamicEnvironment || {
+      preset: 'city'
+    },
+    avatar: dynamicAvatar,
     background: dynamicBackground || {
       mode: process.env.BACKGROUND_MODE || 'environment',
       preset: process.env.BACKGROUND_PRESET || 'city',
@@ -230,6 +234,7 @@ app.get('/api/config', (req, res) => {
 app.put('/api/config/environment', (req, res) => {
   const { preset } = req.body;
   const config = configStore.updateEnvironment(preset);
+  dynamicBackground = { preset: preset };
   broadcast({ type: 'environment_update', data: config.environment });
   res.json({ success: true, config });
 });
@@ -237,6 +242,7 @@ app.put('/api/config/environment', (req, res) => {
 app.put('/api/config/background', (req, res) => {
   const { mode, src } = req.body;
   configStore.updateConfig({ background: { mode, src } });
+  dynamicBackground = { mode, src };
   broadcast({ type: 'background_update', data: { mode, src } });
   res.json({ success: true, background: { mode, src } });
 });
@@ -244,6 +250,7 @@ app.put('/api/config/background', (req, res) => {
 app.put('/api/config/avatars', (req, res) => {
   const { avatars } = req.body;
   const config = configStore.updateAvatars(avatars);
+  dynamicAvatar = avatars;
   broadcast({ type: 'avatars_update', data: config.avatars });
   res.json({ success: true, config });
 });
@@ -478,6 +485,8 @@ let dynamicTasks = [
 
 // 动态背景配置
 let dynamicBackground = null;
+let dynamicEnvironment = null;
+let dynamicAvatar = null;
 
 // 契约处理函数
 const handleContract = (contract, msg) => {
