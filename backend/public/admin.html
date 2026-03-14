@@ -904,10 +904,7 @@
   <div class="toast" id="toast" style="display: none;"></div>
 
   <script>
-    // 确保DOM加载完成后再绑定事件
-    document.addEventListener('DOMContentLoaded', function() {
-    
-    // Data
+    // ===== DATA =====
     const environments = [
       { id: 'city', name: '城市', icon: '🏙️', desc: '现代城市景观' },
       { id: 'sunset', name: '日落', icon: '🌅', desc: '暖色调日落' },
@@ -919,50 +916,40 @@
       { id: 'lobby', name: '大堂', icon: '🏨', desc: '酒店大堂' },
     ];
     
-    // Navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const page = item.dataset.page;
-        showPage(page);
-      });
-    });
+    // ===== GLOBAL FUNCTIONS (defined at window level for inline handlers) =====
     
     function showPage(page) {
       console.log('切换页面:', page);
       document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-      const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+      const navItem = document.querySelector('.nav-item[data-page="' + page + '"]');
       if (navItem) navItem.classList.add('active');
       
-      document.querySelectorAll('.page').forEach(p => { if (p) p.style.display = 'none'; });
-      const targetPage = document.getElementById(`page-${page}`);
+      document.querySelectorAll('.page').forEach(function(p) { if (p) p.style.display = 'none'; });
+      const targetPage = document.getElementById('page-' + page);
       if (targetPage) targetPage.style.display = 'block';
       
       if (page === 'messages') refreshMessages();
       if (page === 'contracts') loadContracts();
       if (page === 'settings') loadRuntimeConfig();
       if (page === 'updates') { loadVersion(); checkForUpdates(); loadResources(); loadUploadedFiles(); }
-      // 资源页面切换时加载本地资源
       if (page === 'avatars' || page === 'backgrounds' || page === 'effects' || page === 'environments') {
         loadLocalAssets();
       }
     }
     
-    // Toast
     function showToast(msg) {
       const toast = document.getElementById('toast');
       toast.textContent = msg;
       toast.style.display = 'block';
-      setTimeout(() => toast.style.display = 'none', 3000);
+      setTimeout(function() { toast.style.display = 'none'; }, 3000);
     }
     
-    // Refresh all
     async function refreshAll() {
       showToast('刷新数据...');
       await refreshMessages();
       showToast('数据已更新');
     }
     
-    // Preview
     function refreshPreview() {
       document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
     }
@@ -971,129 +958,84 @@
       window.open('/', '_blank');
     }
     
-    // Messages
     async function refreshMessages() {
       try {
         const res = await fetch('/api/messages');
         const data = await res.json();
-        
-        document.getElementById('stat-messages').textContent = data.stats.total;
-        document.getElementById('message-count').textContent = `${data.stats.total} 条消息`;
-        
-        const list = document.getElementById('message-list');
-        if (data.messages.length === 0) {
-          list.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">暂无消息</div>';
-        } else {
-          list.innerHTML = data.messages.map(m => `
-            <div class="message-item">
-              <div class="message-time">${new Date(m.timestamp).toLocaleString()}</div>
-              <div class="message-content">${m.text || '(无文本)'}</div>
-            </div>
-          `).join('');
+        const container = document.getElementById('messages-container');
+        if (container && data.messages) {
+          container.innerHTML = data.messages.map(function(m) {
+            return '<div style="padding:8px;border-bottom:1px solid var(--bg-tertiary);"><strong>' + m.sender + '</strong>: ' + m.text + '</div>';
+          }).join('');
         }
       } catch(e) {
-        console.error(e);
+        console.log('获取消息失败:', e);
       }
     }
     
     async function clearMessages() {
       if (!confirm('确定清空消息队列？')) return;
       await fetch('/api/messages', { method: 'DELETE' });
-      refreshMessages();
       showToast('消息已清空');
+      refreshMessages();
     }
     
-    // Contracts
     async function loadContracts() {
-      try {
-        const res = await fetch('/api/protocols/help');
-        const text = await res.text();
-        document.getElementById('contracts-content').textContent = text;
-      } catch(e) {
-        document.getElementById('contracts-content').textContent = '加载失败';
-      }
+      // TODO: Load contracts
     }
     
-    // Settings
     async function loadRuntimeConfig() {
       try {
         const res = await fetch('/api/config/runtime');
         const data = await res.json();
-        
-        if (data.agents) {
-          document.getElementById('setting-agents').value = JSON.stringify(data.agents, null, 2);
-        }
-        if (data.slackChannel) {
-          document.getElementById('setting-slack-channel').value = data.slackChannel;
+        if (data.config) {
+          document.getElementById('agents-config').value = JSON.stringify(data.config.agents || [], null, 2);
+          document.getElementById('avatars-config').value = JSON.stringify(data.config.avatars || [], null, 2);
+          document.getElementById('names-config').value = JSON.stringify(data.config.names || {}, null, 2);
         }
       } catch(e) {
-        console.error(e);
+        console.log('加载配置失败:', e);
       }
     }
     
     async function saveSettings() {
-      // 保存运行时配置
-      const agentsStr = document.getElementById('setting-agents').value;
-      const slackChannel = document.getElementById('setting-slack-channel').value;
-      
       try {
-        let agents = null;
-        if (agentsStr.trim()) {
-          agents = JSON.parse(agentsStr);
-        }
+        const agents = JSON.parse(document.getElementById('agents-config').value);
+        const avatars = JSON.parse(document.getElementById('avatars-config').value);
+        const names = JSON.parse(document.getElementById('names-config').value);
         
         await fetch('/api/config/runtime', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            agents,
-            slackChannel
-          })
+          body: JSON.stringify({ agents, avatars, names })
         });
+        
+        showToast('设置已保存');
       } catch(e) {
         showToast('Agent配置格式错误: ' + e.message);
-        return;
       }
-      
-      // 保存消息队列设置
-      const max = document.getElementById('setting-max-messages').value;
-      await fetch('/api/messages/max', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ max: parseInt(max) })
-      });
-      
-      showToast('设置已保存');
     }
     
     // Render resources
-    document.getElementById('environments-grid').innerHTML = environments.map(e => `
-      <div class="resource-card" data-id="${e.id}">
-        <div class="resource-icon">${e.icon}</div>
-        <div class="resource-name">${e.name}</div>
-        <div class="resource-desc">${e.desc}</div>
-        <button class="btn btn-primary" style="margin-top: 12px; width: 100%;" onclick="applyEnvironment('${e.id}')">应用</button>
-      </div>
-    `).join('');
+    document.getElementById('environments-grid').innerHTML = environments.map(function(e) {
+      return '<div class="resource-card" data-id="' + e.id + '">' +
+        '<div class="resource-icon">' + e.icon + '</div>' +
+        '<div class="resource-name">' + e.name + '</div>' +
+        '<div class="resource-desc">' + e.desc + '</div>' +
+        '<button class="btn btn-primary" style="margin-top: 12px; width: 100%;" onclick="applyEnvironment(\'' + e.id + '\')">应用</button>' +
+        '</div>';
+    }).join('');
     
-    function selectResource(el, id) {
-      document.querySelectorAll('.resource-card').forEach(c => c.classList.remove('active'));
-      el.classList.add('active');
-      showToast(`已选择: ${id}`);
-    }
-    
-    // 应用天空盒
     async function applyEnvironment(preset) {
       try {
         const res = await fetch('/api/config/environment', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ preset })
+          body: JSON.stringify({ preset: preset })
         });
         const data = await res.json();
-        showToast(`已应用天空盒: ${preset}`);
-        // 刷新预览
-        setTimeout(() => {
+        showToast('已应用天空盒: ' + preset);
+        setTimeout(function() {
           document.getElementById('preview-frame').src = document.getElementById('preview-frame').src;
         }, 500);
       } catch(e) {
@@ -1101,56 +1043,57 @@
       }
     }
     
-    // 检查更新
+    function selectResource(el, id) {
+      document.querySelectorAll('.resource-card').forEach(function(c) { c.classList.remove('active'); });
+      el.classList.add('active');
+      showToast('已选择: ' + id);
+    }
+    
+    async function loadVersion() {
+      try {
+        const res = await fetch('/api/version');
+        const data = await res.json();
+        document.getElementById('current-version').textContent = '当前版本: ' + data.version;
+      } catch(e) {
+        console.log('获取版本失败:', e);
+      }
+    }
+    
     async function checkForUpdates() {
       try {
         const res = await fetch('/api/update/check');
         const data = await res.json();
-        
-        document.getElementById('latest-version').textContent = 'v' + data.latest;
-        
-        if (data.needsUpdate) {
-          document.getElementById('update-status').innerHTML = 
-            `<button class="btn btn-primary" onclick="openRelease()">⬆️ 有新版本!</button>`;
-          showToast(`发现新版本: v${data.latest}`);
-        } else {
-          document.getElementById('update-status').innerHTML = 
-            `<span style="color: var(--success);">✓ 已是最新</span>`;
+        if (data.latest && data.latest !== data.version) {
+          showToast('发现新版本: v' + data.latest);
         }
       } catch(e) {
         showToast('检查更新失败: ' + e.message);
       }
     }
     
-    // 加载资源
     async function loadResources() {
       try {
         const res = await fetch('/api/resources');
         const data = await res.json();
         
-        // 显示内置资源
         const envContainer = document.getElementById('builtin-environments');
-        if (envContainer && data.builtIn?.environments) {
-          envContainer.innerHTML = data.builtIn.environments.map(e => 
-            `<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">${e.name}</span>`
-          ).join('');
+        if (envContainer && data.builtIn && data.builtIn.environments) {
+          envContainer.innerHTML = data.builtIn.environments.map(function(e) {
+            return '<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">' + e.name + '</span>';
+          }).join('');
         }
         
         const effectContainer = document.getElementById('builtin-effects');
-        if (effectContainer && data.builtIn?.effects) {
-          effectContainer.innerHTML = data.builtIn.effects.map(e => 
-            `<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">${e.name}</span>`
-          ).join('');
+        if (effectContainer && data.builtIn && data.builtIn.effects) {
+          effectContainer.innerHTML = data.builtIn.effects.map(function(e) {
+            return '<span style="padding: 4px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 13px;">' + e.name + '</span>';
+          }).join('');
         }
-        
-        // 动态扫描本地资源文件
-        await loadLocalAssets();
       } catch(e) {
-        console.error(e);
+        console.log('加载资源失败:', e);
       }
     }
     
-    // 动态扫描本地 assets 目录
     async function loadLocalAssets() {
       try {
         const res = await fetch('/api/assets/list');
@@ -1158,29 +1101,25 @@
         
         if (!data.assets || data.assets.length === 0) return;
         
-        // 按类型分组显示
         const byType = { human: [], bg: [], effect: [], skybox: [] };
-        data.assets.forEach(file => {
+        data.assets.forEach(function(file) {
           const type = file.type || 'other';
           if (byType[type]) {
             byType[type].push(file);
           }
         });
         
-        // 生成资源卡片HTML
-        const makeCard = (f) => `
-          <div class="resource-card" data-src="${f.src}" style="cursor:pointer;padding:12px;background:var(--bg-secondary);border-radius:8px;text-align:center;">
-            <div style="height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
-              ${f.ext === '.png' || f.ext === '.jpg' || f.ext === '.jpeg' || f.ext === '.gif' || f.ext === '.svg' || f.ext === '.webp' 
-                ? `<img src="${f.src}" style="max-height:60px;max-width:100%;" onerror="this.parentElement.innerHTML='📄'">` 
-                : '📄'}
-            </div>
-            <div style="font-size:12px;">${f.name}</div>
-            <div style="font-size:10px;color:#888;">${f.ext}</div>
-          </div>
-        `;
+        const makeCard = function(f) {
+          const imgHtml = (f.ext === '.png' || f.ext === '.jpg' || f.ext === '.jpeg' || f.ext === '.gif' || f.ext === '.svg' || f.ext === '.webp') 
+            ? '<img src="' + f.src + '" style="max-height:60px;max-width:100%;" onerror="this.parentElement.innerHTML=\'📄\'">' 
+            : '📄';
+          return '<div class="resource-card" data-src="' + f.src + '" style="cursor:pointer;padding:12px;background:var(--bg-secondary);border-radius:8px;text-align:center;">' +
+            '<div style="height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">' + imgHtml + '</div>' +
+            '<div style="font-size:12px;">' + f.name + '</div>' +
+            '<div style="font-size:10px;color:#888;">' + f.ext + '</div>' +
+            '</div>';
+        };
         
-        // 更新各页面的资源显示
         const avatarsGrid = document.getElementById('local-avatars');
         if (avatarsGrid) {
           avatarsGrid.innerHTML = byType.human.map(makeCard).join('') || '<div style="color:#888">无本地数字人资源</div>';
@@ -1201,11 +1140,11 @@
           envGrid.innerHTML = byType.skybox.map(makeCard).join('') || '<div style="color:#888">无本地天空盒资源</div>';
         }
         
-        // 添加点击事件（使用事件委托，只绑定一次）
+        // 使用事件委托
         const resourcesGrid = document.getElementById('local-resources-grid');
         if (resourcesGrid && !resourcesGrid.dataset.bound) {
           resourcesGrid.dataset.bound = 'true';
-          resourcesGrid.addEventListener('click', (e) => {
+          resourcesGrid.addEventListener('click', function(e) {
             const card = e.target.closest('.resource-card');
             if (card) {
               const src = card.dataset.src;
@@ -1221,13 +1160,13 @@
       }
     }
     
-    // 资源上传处理
+    // 文件上传相关
     let currentUploadType = null;
     
     function handleAssetUpload(input, type) {
       currentUploadType = type;
       const file = input.files[0];
-      const filename = file?.name || '';
+      const filename = file ? file.name : '';
       document.getElementById(type + '-filename').textContent = filename;
       
       // 显示图片预览
@@ -1235,7 +1174,7 @@
       const previewImg = document.getElementById(type + '-preview-img');
       if (file && file.type.startsWith('image/')) {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = function(e) {
           previewImg.src = e.target.result;
           preview.style.display = 'block';
         };
@@ -1256,7 +1195,6 @@
       const formData = new FormData();
       formData.append('file', file);
       
-      // 根据类型选择上传目录
       const folder = type === 'human' ? 'human' : type === 'bg' ? 'bg' : 'effect';
       
       try {
@@ -1268,7 +1206,6 @@
         
         if (res.ok) {
           showToast('上传成功!');
-          // 刷新资源列表
           loadLocalAssets();
         } else {
           showToast('上传失败');
@@ -1278,7 +1215,6 @@
       }
     }
     
-    // 打开 GitHub
     function openGitHub() {
       window.open('https://github.com/MMXC/digital-wallpaper', '_blank');
     }
@@ -1301,75 +1237,56 @@
       }
       
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('package', selectedFile);
       
       document.getElementById('upload-progress').style.display = 'block';
       document.getElementById('upload-status').textContent = '上传中...';
       
-      try {
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const percent = (e.loaded / e.total * 100).toFixed(0);
-            document.getElementById('upload-progress-bar').style.width = percent + '%';
-            document.getElementById('upload-status').textContent = '上传中... ' + percent + '%';
-          }
-        };
-        
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            const data = JSON.parse(xhr.responseText);
-            document.getElementById('upload-status').textContent = '上传成功!';
-            showToast('文件上传成功');
-            selectedFile = null;
-            document.getElementById('upload-filename').textContent = '';
-            loadUploadedFiles();
-          } else {
-            document.getElementById('upload-status').textContent = '上传失败';
-            showToast('上传失败: ' + xhr.statusText);
-          }
-        };
-        
-        xhr.onerror = () => {
-          document.getElementById('upload-status').textContent = '上传失败';
-          showToast('上传失败');
-        };
-        
-        xhr.open('POST', '/api/upload');
-        xhr.send(formData);
-      } catch(e) {
-        showToast('上传失败: ' + e.message);
-      }
+      const xhr = new XMLHttpRequest();
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+          const percent = (e.loaded / e.total) * 100;
+          document.getElementById('upload-progress-bar').style.width = percent + '%';
+        }
+      };
+      
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          showToast('文件上传成功');
+          loadUploadedFiles();
+        } else {
+          showToast('上传失败: ' + xhr.statusText);
+        }
+      };
+      
+      xhr.onerror = function() {
+        showToast('上传失败');
+      };
+      
+      xhr.open('POST', '/api/upload/wallpaper');
+      xhr.send(formData);
     }
     
     async function loadUploadedFiles() {
       try {
         const res = await fetch('/api/uploads');
         const data = await res.json();
-        
         const container = document.getElementById('uploaded-files');
-        if (data.files.length === 0) {
-          container.innerHTML = '<div style="padding: 20px; text-align: center;">暂无上传文件</div>';
-        } else {
-          container.innerHTML = data.files.map(f => `
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border-color);">
-              <div>
-                <div style="font-weight: 500;">${f.filename}</div>
-                <div style="font-size: 12px; color: var(--text-secondary);">${(f.size / 1024).toFixed(1)} KB</div>
-              </div>
-              <button class="btn btn-danger" style="padding: 4px 12px; font-size: 12px;" onclick="deleteFile('${f.filename}')">删除</button>
-            </div>
-          `).join('');
+        if (container && data.files) {
+          container.innerHTML = data.files.map(function(f) {
+            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid var(--bg-tertiary);">' +
+              '<span>' + f.filename + '</span>' +
+              '<button class="btn btn-danger" style="padding:4px 12px;font-size:12px;" onclick="deleteFile(\'' + f.filename + '\')">删除</button>' +
+              '</div>';
+          }).join('');
         }
       } catch(e) {
-        console.error(e);
+        console.log('加载上传文件失败:', e);
       }
     }
     
     async function deleteFile(filename) {
       if (!confirm('确定删除 ' + filename + '?')) return;
-      
       try {
         await fetch('/api/uploads/' + filename, { method: 'DELETE' });
         showToast('已删除');
@@ -1383,16 +1300,21 @@
       window.open('https://github.com/MMXC/digital-wallpaper/releases', '_blank');
     }
     
-    // 加载当前版本
-    async function loadVersion() {
-      try {
-        const res = await fetch('/api/version');
-        const data = await res.json();
-        document.getElementById('current-version').textContent = 'v' + data.version;
-      } catch(e) {}
-    }
-    
-    }); // DOMContentLoaded 结束
+    // ===== INITIALIZATION (runs after DOM is ready) =====
+    document.addEventListener('DOMContentLoaded', function() {
+      // Navigation event binding
+      document.querySelectorAll('.nav-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+          const page = item.dataset.page;
+          showPage(page);
+        });
+      });
+      
+      // 默认显示首页
+      showPage('dashboard');
+      
+      console.log('Admin initialized');
+    });
   </script>
 </body>
 </html>
