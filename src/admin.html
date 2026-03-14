@@ -1147,6 +1147,7 @@
         const data = await res.json();
         console.log("Assets response:", JSON.stringify(data).substring(0, 500));
         
+        console.log("ALL assets:", data.assets);
         if (!data.assets || data.assets.length === 0) {
           console.log("No assets found");
           return;
@@ -1230,6 +1231,7 @@
         
         const effectsGrid = document.getElementById('local-effects');
         if (effectsGrid) {
+          console.log("Rendering effects, count:", byType.effect.length);
           effectsGrid.innerHTML = byType.effect.map(makeCard).join('') || '<div style="color:#888">无本地特效资源</div>';
         }
         
