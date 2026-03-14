@@ -1367,7 +1367,8 @@
       const formData = new FormData();
       formData.append('file', file);
       
-      const folder = type === 'avatar' ? 'human' : type === 'bg' ? 'bg' : 'effect';
+      const folderMap = { avatar: 'human', human: 'human', bg: 'bg', effect: 'effect' };
+      const folder = folderMap[type] || 'uploads';
       
       try {
         showToast('上传中...');
