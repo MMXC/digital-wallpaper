@@ -364,8 +364,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   const sourcePath = req.file.path;
   const targetPath = join(targetDir, req.file.filename);
   try {
-    await fs.promises.copyFile(sourcePath, targetPath);
-    await fs.promises.unlink(sourcePath);
+    await fs.copyFile(sourcePath, targetPath);
+    await fs.unlink(sourcePath);
   } catch (e) {
     console.error('移动文件失败:', e);
     res.status(500).json({ error: '保存文件失败: ' + e.message });
