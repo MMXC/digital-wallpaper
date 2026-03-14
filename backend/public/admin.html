@@ -1236,6 +1236,8 @@
           if (byType.effect.length > 0) {
             effectsGrid.innerHTML = byType.effect.map(makeCard).join('');
             console.log("Effects grid innerHTML length:", effectsGrid.innerHTML.length);
+            // Add visible marker
+            effectsGrid.insertAdjacentHTML('afterbegin', '<div style="color:#0f0;padding:5px;font-size:12px;">✓ 已加载 ' + byType.effect.length + ' 个特效</div>');
           } else {
             effectsGrid.innerHTML = '<div style="color:#888;padding:20px;">特效目录为空，请上传或git pull获取资源</div>';
           }
