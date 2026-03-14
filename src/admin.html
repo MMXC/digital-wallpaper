@@ -1183,14 +1183,19 @@
           envGrid.innerHTML = byType.skybox.map(makeCard).join('') || '<div style="color:#888">无本地天空盒资源</div>';
         }
         
-        // 添加点击事件
-        document.querySelectorAll('.resource-card').forEach(card => {
-          card.addEventListener('click', () => {
-            const src = card.dataset.src;
-            console.log('选择资源:', src);
-            alert('已选择: ' + src);
+        // 添加点击事件（使用事件委托，只绑定一次）
+        const resourcesGrid = document.getElementById('local-resources-grid');
+        if (resourcesGrid && !resourcesGrid.dataset.bound) {
+          resourcesGrid.dataset.bound = 'true';
+          resourcesGrid.addEventListener('click', (e) => {
+            const card = e.target.closest('.resource-card');
+            if (card) {
+              const src = card.dataset.src;
+              console.log('选择资源:', src);
+              showToast('已选择: ' + src);
+            }
           });
-        });
+        }
         
         console.log('本地资源已加载');
       } catch(e) {
