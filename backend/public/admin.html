@@ -984,7 +984,16 @@
     }
     
     async function loadContracts() {
-      // TODO: Load contracts
+      try {
+        const res = await fetch('/api/messages');
+        const data = await res.json();
+        const container = document.getElementById('contracts-content');
+        if (container && data.messages) {
+          container.textContent = JSON.stringify(data.messages, null, 2);
+        }
+      } catch(e) { 
+        console.log('加载契约失败:', e);
+      }
     }
     
     async function loadRuntimeConfig() {

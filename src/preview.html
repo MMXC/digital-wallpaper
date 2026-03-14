@@ -142,6 +142,7 @@
       display: none;
     }
   </style>
+<script>function openExport() { window.open('/export.html', '_blank'); }</script>
 </head>
 <body>
   <div class="loading" id="loading">加载中</div>
@@ -156,6 +157,7 @@
   <div id="container"></div>
   
   <div class="controls">
+    <button id="btn-export" onclick="window.open('/export.html', '_blank')">📥 导出</button>
     <button id="btn-autoplay" class="active">▶ 自动旋转</button>
     <button id="btn-fullscreen">⛶ 全屏</button>
     <button id="btn-vr">🥽 VR 模式</button>
