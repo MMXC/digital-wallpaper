@@ -219,9 +219,9 @@ app.get('/api/config', (req, res) => {
       preset: process.env.BACKGROUND_PRESET || 'city',
       color: process.env.BACKGROUND_COLOR || '#0f172a',
     },
-    environment: configStore.get().environment || { preset: 'city' },
-    avatar: configStore.get().avatar || null,
-    effects: configStore.get().effects || []
+    environment: configStore.getConfig().environment || { preset: 'city' },
+    avatar: configStore.getConfig().avatar || null,
+    effects: configStore.getConfig().effects || []
   };
   res.json(config);
 });
