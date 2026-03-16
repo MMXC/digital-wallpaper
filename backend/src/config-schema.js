@@ -4,8 +4,19 @@
  * 这个文件定义了前端支持的所有配置项
  * 其他系统可以通过 /api/config 获取这些配置
  * 
- * 配置文件版本: 1.0.0
+ * 配置文件版本: 1.1.0
+ * 更新内容: Phase 1 - 多资源类型支持
  */
+
+// ============ 资源类型定义 (Phase 1新增) ============
+
+export const RESOURCE_TYPES = {
+  IMAGE: 'image',
+  VIDEO: 'video',
+  MODEL_3D: 'model_3d',
+  AUDIO: 'audio',
+  MOTION_CAPTURE: 'motion_capture'
+};
 
 // ============ 配置契约 ============
 
@@ -34,6 +45,51 @@ export const CONFIG_SCHEMA = {
         description: { type: 'string', description: '描述' }
       },
       required: ['id', 'name']
+    }
+  },
+
+  // ============ 资源管理配置 (Phase 1新增) ============
+  resources: {
+    type: 'object',
+    description: '数字人资源管理配置',
+    properties: {
+      registry: {
+        type: 'object',
+        description: '资源注册表配置',
+        properties: {
+          enabled: { type: 'boolean', description: '是否启用资源注册表', default: true },
+          autoRegister: { type: 'boolean', description: '是否自动注册新资源', default: true },
+          maxCacheSize: { type: 'number', description: '最大缓存数量', default: 100 }
+        }
+      },
+      loader: {
+        type: 'object',
+        description: '资源加载器配置',
+        properties: {
+          image: {
+            type: 'object',
+            properties: {
+              crossOrigin: { type: 'string', default: 'anonymous' },
+              cache: { type: 'boolean', default: true }
+            }
+          },
+          video: {
+            type: 'object',
+            properties: {
+              crossOrigin: { type: 'string', default: 'anonymous' },
+              muted: { type: 'boolean', default: true }
+            }
+          }
+        }
+      },
+      preload: {
+        type: 'object',
+        description: '资源预加载配置',
+        properties: {
+          enabled: { type: 'boolean', default: true },
+          onDemand: { type: 'boolean', default: true }
+        }
+      }
     }
   },
 
@@ -228,6 +284,58 @@ export const CONTRACT_ACTIONS = {
     name: '更新数字人列表',
     params: { avatars: CONFIG_SCHEMA.avatars },
     description: '更新显示的数字人及其状态'
+  },
+
+  // ============ 资源管理动作 (Phase 1新增) ============
+  
+  // 注册资源
+  resource_register: {
+    name: '注册资源',
+    params: { 
+      id: 'string', 
+      name: 'string', 
+      type: 'string', 
+      url: 'string', 
+      format: 'string',
+      size: 'number',
+      metadata: 'object'
+    },
+    description: '向资源注册表添加新资源'
+  },
+
+  // 注销资源
+  resource_unregister: {
+    name: '注销资源',
+    params: { id: 'string' },
+    description: '从资源注册表中移除资源'
+  },
+
+  // 更新资源
+  resource_update: {
+    name: '更新资源',
+    params: { id: 'string', updates: 'object' },
+    description: '更新已注册资源的属性'
+  },
+
+  // 批量加载资源
+  resource_load: {
+    name: '加载资源',
+    params: { resources: 'array', options: 'object' },
+    description: '异步加载指定资源'
+  },
+
+  // 预加载资源
+  resource_preload: {
+    name: '预加载资源',
+    params: { resources: 'array', priority: 'array' },
+    description: '批量预加载资源'
+  },
+
+  // 清除资源缓存
+  resource_cache_clear: {
+    name: '清除资源缓存',
+    params: { key: 'string?' },
+    description: '清除资源加载器的缓存'
   },
 
   // 更新任务列表

@@ -19,6 +19,8 @@ import { getProtocols, generateHelpText, getConfigSchema } from './protocols.js'
 import { initWebSocketServer, broadcastToAgent, broadcast, getClientCount } from './websocket.js';
 import configStore from './config-store.js';
 import { checkForUpdates, getResources, CURRENT_VERSION, autoCheckUpdate, setBroadcast } from './updater.js';
+// Phase 1: 资源管理模块
+import resourceApi from './resource-api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -317,7 +319,10 @@ app.get('/api/update/check', async (req, res) => {
   res.json(result);
 });
 
-// 获取资源列表
+// Phase 1: 资源管理 API
+app.use('/api/resources', resourceApi);
+
+// 获取资源列表 (旧版兼容性)
 app.get('/api/resources', async (req, res) => {
   const resources = await getResources();
   res.json(resources);
