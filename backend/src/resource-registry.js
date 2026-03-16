@@ -94,8 +94,9 @@ class ResourceRegistry {
   register(resource) {
     const { id, type, format } = resource;
     
-    // 验证资源类型
-    if (!RESOURCE_TYPES[type]) {
+    // 验证资源类型 - 支持大小写不敏感
+    const validType = Object.values(RESOURCE_TYPES).includes(type);
+    if (!validType) {
       throw new Error(`Invalid resource type: ${type}`);
     }
     

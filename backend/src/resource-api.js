@@ -10,7 +10,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { RESOURCE_TYPES, RESOURCE_FORMATS, RESOURCE_METADATA } from './resource-registry.js';
 import { resourceRegistry } from './resource-registry.js';
 import { resourceLoader } from './resource-loader.js';
@@ -38,7 +38,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueName = `${uuidv4()}${ext}`;
+    const uniqueName = `${randomUUID()}${ext}`;
     cb(null, uniqueName);
   }
 });
@@ -174,7 +174,7 @@ router.post('/', (req, res) => {
     
     // 注册资源
     const resource = resourceRegistry.register({
-      id: id || uuidv4(),
+      id: id || randomUUID(),
       name,
       type,
       url,
@@ -220,7 +220,7 @@ router.post('/upload', upload.single('file'), (req, res) => {
     
     // 注册资源
     const resource = resourceRegistry.register({
-      id: uuidv4(),
+      id: randomUUID(),
       name: name || req.file.originalname,
       type: resourceType,
       url,
